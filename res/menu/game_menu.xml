@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/gouraud" android:title="@string/gouraud"/>
+    <item android:id="@+id/quit"
+          android:title="@string/quit" >
+    </item><item android:id="@+id/phong" android:title="@+string/phong"></item>
+    <item android:id="@+id/normal_map" android:title="@+string/normal"></item>  
+</menu>

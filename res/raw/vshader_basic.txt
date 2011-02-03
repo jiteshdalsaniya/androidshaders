@@ -1,0 +1,10 @@
+uniform mat4 mvpMatrix;    
+attribute vec4 position;    
+attribute vec2 textureCoord;    
+varying vec2 vTextureCoord;    
+
+
+void main() {    
+	gl_Position = uMVPMatrix * aPosition;    
+	vTextureCoord = aTextureCoord;    
+}
