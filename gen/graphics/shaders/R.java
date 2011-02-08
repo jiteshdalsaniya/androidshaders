@@ -26,12 +26,13 @@ public final class R {
         public static final int game_menu=0x7f060000;
     }
     public static final class raw {
-        public static final int cube=0x7f040000;
-        public static final int octahedron=0x7f040001;
-        public static final int pshader_basic=0x7f040002;
-        public static final int robot=0x7f040003;
-        public static final int tetrahedron=0x7f040004;
-        public static final int vshader_basic=0x7f040005;
+        public static final int apple=0x7f040000;
+        public static final int cube=0x7f040001;
+        public static final int octahedron=0x7f040002;
+        public static final int pshader_basic=0x7f040003;
+        public static final int robot=0x7f040004;
+        public static final int tetrahedron=0x7f040005;
+        public static final int vshader_basic=0x7f040006;
     }
     public static final class string {
         public static final int app_name=0x7f050004;
