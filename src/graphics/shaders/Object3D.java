@@ -66,64 +66,6 @@ public class Object3D {
 	 *************************/
 	
 	/*
-	 * Draws the object
-	 */
-	public void draw(int positionHandle) {
-		
-		// the vertex buffer
-		FloatBuffer vb = mesh.get_vb();
-		float[] vertices = mesh.get_vertices();
-		
-		ShortBuffer ib = mesh.get_ib();
-		short[] indices = mesh.get_indices();
-		
-		// Do binding and whatnot
-		// generate buffers first
-		int buffers[] = new int[2];
-	    GLES20.glGenBuffers(2, buffers, 0);
-	    
-	    // bind vertex buffer
-	    GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[0]);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER,
-                     vertices.length * FLOAT_SIZE_BYTES,
-                     vb,
-                     GLES20.GL_STATIC_DRAW);
-		
-        // for indices
-	    GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
-        GLES20.glBufferData(GLES20.GL_ELEMENT_ARRAY_BUFFER,
-                     indices.length * 2,
-                     ib,
-                     GLES20.GL_STATIC_DRAW);
-        
-		// draw texture?
-		if (this.hasTexture) {
-			/*GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texID);
-			
-			GLES20.glVertexAttribPointer(shader.getMaTextureHandle(), 2, GLES20.GL_FLOAT, false,
-		                TRIANGLE_VERTICES_DATA_STRIDE_BYTES, vb);
-		    //checkGlError("glVertexAttribPointer maTextureHandle");
-		    GLES20.glEnableVertexAttribArray(shader.getMaTextureHandle());*/
-		}
-        
-		// attrib pointer for vertex buffer
-		GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, buffers[0]);
-		GLES20.glEnableVertexAttribArray(positionHandle);
-		GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false,
-                TRIANGLE_VERTICES_DATA_STRIDE_BYTES, vb);
-		
-		// Draw using index buffer
-		GLES20.glDrawElements(GLES20.GL_TRIANGLES, indices.length, GLES20.GL_UNSIGNED_SHORT, ib);
-		
-        //checkGlError("glVertexAttribPointer maPosition");
-        //fb.position(TRIANGLE_VERTICES_DATA_UV_OFFSET);
-        //checkGlError("glEnableVertexAttribArray maPositionHandle");
-     
-        //checkGlError("glEnableVertexAttribArray maTextureHandle");
-	}
-	
-	/*
 	 * Calls the mesh draw functions
 	 */
 	public void drawMesh() {
@@ -135,6 +77,9 @@ public class Object3D {
 	 * Sets up the texture
 	 */
 	public void setupTexture(Context context) {
+		if (!hasTexture)
+			return;
+		
 		// create new texture ids
 		int[] textures = new int[1];
         GLES20.glGenTextures(1, textures, 0);

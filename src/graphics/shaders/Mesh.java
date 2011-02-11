@@ -30,6 +30,10 @@ public class Mesh {
     private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES;
     private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
     private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 3;
+    
+    // the number of elements for each vertex
+    // [coordx, coordy, coordz, normalx, normaly, normalz....]
+    private final int VERTEX_ARRAY_SIZE = 6;
 	
 	// Vertices
 	private float _vertices[];
@@ -40,11 +44,12 @@ public class Mesh {
 	// Buffer [index + vertex]
 	private FloatBuffer _vb;
 	private ShortBuffer _ib;
-	private int[] vb;
-	private int[] ib;
 	
 	// Normals
+	private float[] _faceNormals;
+	private int[]   _surroundingFaces; // # of surrounding faces for each vertex
 	
+	// Store the context
 	Context activity; 
 	
 	
@@ -117,24 +122,38 @@ public class Mesh {
 		    int _numFaces = Integer.parseInt(tokenizer.nextToken());
 		    //int _numEdges = Integer.parseInt(tokenizer.nextToken());
 		    
-		    // read vertices
-		    _vertices = new float[_numVertices * 3]; 
+		    // read vertices - going to store vertex coordinates + normals
+		    _vertices = new float[_numVertices * this.VERTEX_ARRAY_SIZE]; 
 		    int i = 0;
 		    for (i = 0; i < _numVertices; i++) {
 		    	 str = in.readLine();
 		    	
 		    	 // tokenizer based on space
 		    	 tokenizer = new StringTokenizer(str);
-		    	 _vertices[i * 3 + 0] = Float.parseFloat(tokenizer.nextToken());
-		    	 _vertices[i * 3 + 1] = Float.parseFloat(tokenizer.nextToken());
-		    	 _vertices[i * 3 + 2] = Float.parseFloat(tokenizer.nextToken());
-		    	 Log.d("Str vertices:", _vertices[i * 3 + 0] + "," + _vertices[i * 3 + 1] + "," + _vertices[i * 3 + 2]);
+		    	 _vertices[i * this.VERTEX_ARRAY_SIZE]     = Float.parseFloat(tokenizer.nextToken());
+		    	 _vertices[i * this.VERTEX_ARRAY_SIZE + 1] = Float.parseFloat(tokenizer.nextToken());
+		    	 _vertices[i * this.VERTEX_ARRAY_SIZE + 2] = Float.parseFloat(tokenizer.nextToken());
+		    	 //Log.d("Str vertices:", _vertices[i * this.VERTEX_ARRAY_SIZE + 0] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 1] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 2]);
 		    }
 		    
 		    Log.d("ReadFile", "Read vertices");
 		    
 		    // read faces and setup the index buffer
-		    _indices = new short[_numFaces * 3];
+		    // array size
+		    int arraySize = _numFaces * 3;
+		    _indices = new short[arraySize];
+		    
+		    // setup the face normals
+		    _faceNormals = new float[arraySize]; // NEEDED?
+		    _surroundingFaces = new int[_numVertices]; // # of surrounding faces for each vertex
+		    
+		    // initialize to 0
+		    for(int x = 0; x < _numVertices; x++) {
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 3] = 0;
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 4] = 0;
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 5] = 0;
+		    	_surroundingFaces[x] = 0;
+		    }
 		    
 		    for (i = 0; i < _numFaces; i++) {
 		    	 str = in.readLine();
@@ -153,7 +172,18 @@ public class Mesh {
 		    	 _indices[i * 3 + 0] = firstV;
 		    	 _indices[i * 3 + 1] = secondV;
 		    	 _indices[i * 3 + 2] = thirdV;
+		    	 
+		    	 // Calculate the face normal
+		    	 setFaceNormal(i, firstV, secondV, thirdV);
 		    }
+		    
+		    // finally calculate the exact vertex normals
+		    for(int x = 0; x < _numVertices; x++) {
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
+		    	_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
+		    }
+		    
 		    
 		    // Generate your vertex and index buffers
 		    // vertex buffer
@@ -180,6 +210,64 @@ public class Mesh {
 		return 1;
 	}
 
+	/**
+	 * Sets the face normal of the i'th face
+	 * @param i the index of the face
+	 * @param firstV first vertex of the triangle
+	 * @param secondV second vertex of the triangle
+	 * @param thirdV third vertex of the triangle
+	 */
+	private void setFaceNormal(int i, int firstV, int secondV, int thirdV) {
+		// get coordinates of all the vertices
+		float v1[] = {_vertices[firstV * 3], _vertices[firstV * 3 + 1], _vertices[firstV * 3 + 2]};
+		float v2[] = {_vertices[secondV * 3], _vertices[secondV * 3 + 1], _vertices[secondV * 3 + 2]};
+		float v3[] = {_vertices[thirdV * 3], _vertices[thirdV * 3 + 1], _vertices[thirdV * 3 + 2]};
+		
+		// calculate the cross product of v1-v2 and v2-v3
+		float v1v2[] = {v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]};
+		float v2v3[] = {v2[0]-v3[0], v2[1]-v3[1], v2[2]-v3[2]};
+		
+		float cp[] = crossProduct(v1v2, v2v3);
+		
+		// set the normal
+		_faceNormals[i * 3]     = cp[0];
+		_faceNormals[i * 3 + 1] = cp[1];
+		_faceNormals[i * 3 + 2] = cp[2];
+		
+		// Setup for vertex normal construction
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		
+		// increment # of faces around the vertex
+		_surroundingFaces[firstV]++;
+		_surroundingFaces[secondV]++;
+		_surroundingFaces[thirdV]++;
+	}
+	
+	/**
+	 * Calculates the cross product of two 3d vectors
+	 */
+	public float[] crossProduct(float[] v0, float[] v1)
+	  {
+	    float crossProduct[] = new float[3];
+	    
+	    crossProduct[0] = v0[1] * v1[2] - v0[2] * v1[1];
+	    crossProduct[1] = v0[2] * v1[0] - v0[0] * v1[2];
+	    crossProduct[2] = v0[0] * v1[1] - v0[1] * v1[0];
+
+	    return crossProduct;
+	  }
+	
+	
 	
 	/***************************
 	 * GET/SET

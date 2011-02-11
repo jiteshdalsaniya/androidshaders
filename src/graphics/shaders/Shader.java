@@ -4,6 +4,11 @@
 
 package graphics.shaders;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import android.content.Context;
 import android.opengl.GLES20;
 import android.util.Log;
 
@@ -12,18 +17,23 @@ public class Shader {
 	 * PROPERTIES
 	 **********************/
 	
-	// handles
+	// program/vertex/fragment handles
 	private int _program, _vertexShader, _pixelShader;
 	
-	// other handles - position/texture/mvpmatrix
+	// other handles - position/texture/mvpmatrix/normal
 	private int muMVPMatrixHandle;
     private int maPositionHandle;
+    private int maNormalHandle;
+    private int hasTextureHandle;   
     private int maTextureHandle;
 	
 	// The shaders
 	private String _vertexS, _fragmentS;
+	private int _vsID, _fsID; // the ids for the files to be read
 	
-	
+	// does it have textures?
+	private boolean hasTextures;
+	private int numTextures;
 	
     /************************
      * CONSTRUCTOR(S)
@@ -32,16 +42,82 @@ public class Shader {
 		
 	}
 	
-	public Shader(String vertexS, String fragmentS) {
-		this._vertexS = vertexS;
-		this._fragmentS = fragmentS;
-		int create = createProgram();
+	// Takes in Strings directly
+	public Shader(String vertexS, String fragmentS, boolean hasTextures, int numTextures) {
+		setup(vertexS, fragmentS, hasTextures, numTextures);
+	}
+	
+	// Takes in ids for files to be read
+	public Shader(int vID, int fID, Context context, boolean hasTextures, int numTextures) {
+		StringBuffer vs = new StringBuffer();
+		StringBuffer fs = new StringBuffer();
+		
+		// read the files
+		try {
+			// Read the file from the resource
+			Log.d("loadFile", "Trying to read vs");
+			// Read VS first
+			InputStream inputStream = context.getResources().openRawResource(vID);
+			// setup Bufferedreader
+		    BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
+		    
+		    String read = in.readLine();
+		    while (read != null) {
+		    	vs.append(read + "\n");
+		    	read = in.readLine();
+		    }
+		    
+		    vs.deleteCharAt(vs.length() - 1);
+		    Log.d("StringBufferVS", vs.toString());
+		    
+		    // Now read FS
+		    Log.d("loadFile", "Trying to read vs");
+			// Read VS first
+			inputStream = context.getResources().openRawResource(fID);
+			// setup Bufferedreader
+		    in = new BufferedReader(new InputStreamReader(inputStream));
+		    
+		    read = in.readLine();
+		    while (read != null) {
+		    	fs.append(read + "\n");
+		    	read = in.readLine();
+		    }
+		    
+		    fs.deleteCharAt(fs.length() - 1);
+		    Log.d("StringBufferFS", fs.toString());
+		} catch (Exception e) {
+			Log.d("ERROR-readingShader", "Could not read shader: " + e.getLocalizedMessage());
+		}
+		
+		
+		// Setup everything
+		setup(vs.toString(), fs.toString(), hasTextures, numTextures);
 	}
 	
 	
 	/**************************
 	 * OTHER METHODS
 	 *************************/
+	
+	/** 
+	 * Sets up everything
+	 * @param vs the vertex shader
+	 * @param fs the fragment shader 
+	 */
+	private void setup(String vs, String fs, boolean hasTextures, int numTextures) {
+		this._vertexS = vs;
+		this._fragmentS = fs;
+		
+		// create the program
+		int create = createProgram();
+		
+		// textures
+		this.hasTextures = hasTextures;
+		this.numTextures = numTextures;
+		
+		// setup the handles
+		this.setupHandles();
+	}
 	
 	
 	/**
@@ -81,28 +157,8 @@ public class Shader {
                 return 0;
             }
         }
-        
-        // The handles
-        // position
-        maPositionHandle = GLES20.glGetAttribLocation(_program, "position");
-        checkGlError("glGetAttribLocation aPosition");
-        if (maPositionHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for aPosition");
-        }
-        
-        // texture
-        maTextureHandle = GLES20.glGetAttribLocation(_program, "textureCoord");
-        checkGlError("glGetAttribLocation aTextureCoord");
-        if (maTextureHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for aTextureCoord");
-        }
-
-        // modelview/projection matrix
-        muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "mvpMatrix");
-        checkGlError("glGetUniformLocation uMVPMatrix");
-        if (muMVPMatrixHandle == -1) {
-            throw new RuntimeException("Could not get attrib location for uMVPMatrix");
-        }
+        else
+        	Log.d("CreateProgram", "Could not create program");
         
         return 1;
     }
@@ -111,7 +167,50 @@ public class Shader {
 	 * Sets up the handles for the inputs
 	 */
 	public void setupHandles() {
-		
+		 // The handles
+        // position
+        maPositionHandle = GLES20.glGetAttribLocation(_program, "aPosition");
+        checkGlError("glGetAttribLocation aPosition");
+        if (maPositionHandle == -1) {
+            throw new RuntimeException("Could not get attrib location for aPosition");
+        }
+        
+        // normal
+        // position
+        maNormalHandle = GLES20.glGetAttribLocation(_program, "aNormal");
+        checkGlError("glGetAttribLocation normal");
+        if (maNormalHandle == -1) {
+            throw new RuntimeException("Could not get attrib location for normal");
+        }
+        
+        // texture
+        // handle for whether textures are available or not
+        hasTextureHandle = GLES20.glGetUniformLocation(_program, "hasTexture");
+        checkGlError("glGetAttribLocation hasTextureHandle");
+        if (hasTextureHandle == -1) {
+            throw new RuntimeException("Could not get attrib location for hasTextureHandle");
+        }
+        
+        if (hasTextures) {
+	        maTextureHandle = GLES20.glGetAttribLocation(_program, "textureCoord");
+	        checkGlError("glGetAttribLocation aTextureCoord");
+	        if (maTextureHandle == -1) {
+	            throw new RuntimeException("Could not get attrib location for aTextureCoord");
+	        }
+        }
+
+        // modelview/projection matrix
+        muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "uMVPMatrix");
+        checkGlError("glGetUniformLocation uMVPMatrix");
+        if (muMVPMatrixHandle == -1) {
+            throw new RuntimeException("Could not get attrib location for uMVPMatrix");
+        }
+        
+        // Enable all of the vertex attribute arrays
+		GLES20.glEnableVertexAttribArray(this.maPositionHandle);
+		GLES20.glEnableVertexAttribArray(this.maNormalHandle);
+		GLES20.glEnableVertexAttribArray(this.hasTextureHandle);
+		GLES20.glEnableVertexAttribArray(this.muMVPMatrixHandle);
 	}
 	
 	/**
@@ -191,9 +290,19 @@ public class Shader {
 	public void setMaPositionHandle(int maPositionHandle) {
 		this.maPositionHandle = maPositionHandle;
 	}
+	public int getMaNormalHandle() {
+		return maNormalHandle;
+	}
 
+	public void setMaNormalHandle(int maNormalHandle) {
+		this.maNormalHandle = maNormalHandle;
+	}
 	public int getMaTextureHandle() {
 		return maTextureHandle;
+	}
+
+	public int getHasTextureHandle() {
+		return this.hasTextureHandle;
 	}
 
 	public void setMaTextureHandle(int maTextureHandle) {
