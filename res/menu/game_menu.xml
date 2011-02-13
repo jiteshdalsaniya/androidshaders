@@ -3,6 +3,11 @@
     <item android:id="@+id/gouraud" android:title="@string/gouraud"/>
     <item android:id="@+id/quit"
           android:title="@string/quit" >
-    </item><item android:id="@+id/phong" android:title="@+string/phong"></item>
-    <item android:id="@+id/normal_map" android:title="@+string/normal"></item>  
+    </item>
+    <item android:id="@+id/phong" android:title="@+string/phong"></item>
+    <item android:id="@+id/normal_map" android:title="@+string/normal"></item>
+    <item android:id="@+id/octahedron" android:title="@+string/octahedron"></item>
+    <item android:id="@+id/tetrahedron" android:title="@+string/tetrahedron"></item>
+    <item android:id="@+id/cube" android:title="@+string/cube"></item>
+    <item android:id="@+id/texture" android:title="@+string/texture"></item>    
 </menu>

@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 
 // Debugging
 import android.util.Log;
@@ -116,21 +117,50 @@ public class ShaderActivity extends Activity {
         // Handle item selection
         switch (item.getItemId()) {
 	        case R.id.gouraud: 			// Gouraud Shading
-	            renderer.setShader(0);
+	            renderer.setShader(this.GOURAUD_SHADER);
 	            return true;
 	        case R.id.phong: 			// Phong Shading
-	        	renderer.setShader(1);
+	        	renderer.setShader(this.PHONG_SHADER);
 	            return true;
 	        case R.id.normal_map:		// Normal Mapping
-	        	renderer.setShader(2);
+	        	renderer.setShader(this.NORMALMAP_SHADER);
 	            return true;
 	        case R.id.quit:
 	            quit();
+	            return true;
+	        case R.id.cube:				// Cube
+	        	renderer.setObject(this.CUBE);
+	            return true;
+	        case R.id.octahedron:		// Octahedron
+	        	renderer.setObject(this.OCTAHEDRON);
+	            return true;
+	        case R.id.tetrahedron:		// Tetrahedron
+	        	renderer.setObject(this.TETRAHEDRON);
 	            return true;
 	        default:
 	            return super.onOptionsItemSelected(item);
         }
     }
+    
+    /************
+     * TOUCH FUNCTION - Should allow user to rotate the environment
+     **********/
+    @Override public boolean onTouchEvent(MotionEvent e) {
+        float x = e.getX();
+        float y = e.getY();
+        switch (e.getAction()) {
+        case MotionEvent.ACTION_MOVE:
+            float dx = x - mPreviousX;
+            float dy = y - mPreviousY;
+            renderer.mAngleX += dx * TOUCH_SCALE_FACTOR;
+            renderer.mAngleY += dy * TOUCH_SCALE_FACTOR;
+            mGLSurfaceView.requestRender();
+        }
+        mPreviousX = x;
+        mPreviousY = y;
+        return true;
+    }
+    
     
     // Quit the app
     private void quit() {
@@ -146,4 +176,20 @@ public class ShaderActivity extends Activity {
     
     // The Renderer
     Renderer renderer;
+    
+    // rotation
+    private final float TOUCH_SCALE_FACTOR = 180.0f / 320;
+    private float mPreviousX;
+    private float mPreviousY;
+    
+    // shader constants
+	private final int GOURAUD_SHADER = 0;
+	private final int PHONG_SHADER = 1;
+	private final int NORMALMAP_SHADER = 2;
+	
+
+	// object constants
+	private final int OCTAHEDRON = 0;
+	private final int TETRAHEDRON = 1;
+	private final int CUBE = 2;
 }

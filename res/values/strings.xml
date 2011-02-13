@@ -5,4 +5,8 @@
 	<string name="normal">Normal Mapping</string>
 	<string name="quit">Quit</string>
     <string name="app_name">AndroidShaders</string>
+    <string name="octahedron">Octahedron</string>
+    <string name="tetrahedron">Tetrahedron</string>
+    <string name="cube">Cube</string>
+    <string name="texture">Texture</string>
 </resources>

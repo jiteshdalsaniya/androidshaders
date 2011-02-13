@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2009 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package graphics.shaders;
 
 import java.io.BufferedReader;
@@ -43,7 +27,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	/******************************
 	 * PROPERTIES
 	 ******************************/
-	Activity activity;
+	// rotation 
+	public float mAngleX;
+    public float mAngleY;
 
 	private static final int FLOAT_SIZE_BYTES = 4;
 	private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 6 * FLOAT_SIZE_BYTES;
@@ -64,40 +50,10 @@ class Renderer implements GLSurfaceView.Renderer {
 	private int[] vShaders;
 	private int[] fShaders;
 
-	// Shaders for simple texturing (load from resources)
-
-	private final String _basicVShader =
-		"uniform mat4 uMVPMatrix;\n" +
-		"attribute vec4 aPosition;\n" +
-		"attribute vec3 aNormal;" + 
-		"varying vec3 vNormal;" +
-		"void main() {\n" +
-		"  vNormal = aNormal;" +
-		"  gl_Position = uMVPMatrix * aPosition;" +// * vec3(1.0, 1.0, 1.0);\n" + 
-		"}\n";
-
-	private final String _basicTexturedPShader =
-		"precision mediump float;\n" +
-		"varying vec3 vNormal;" +
-		"void main() {\n" +
-		"  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n" +
-		"}\n";
-
-	private final String mFragmentShader =
-		"precision mediump float;\n" +
-		"varying vec2 vTextureCoord;\n" +
-		"uniform sampler2D sTexture;\n" +
-		"void main() {\n" +
-		"  gl_FragColor = texture2D(sTexture, vTextureCoord);\n" +
-		"}\n";
-
 	// object constants
 	private final int OCTAHEDRON = 0;
-	private final int TETRAHEDRON = 0;
-	private final int CUBE = 0;
-	
-	//private final int PHONG_SHADER = 1;
-	//private final int NORMALMAP_SHADER = 2;
+	private final int TETRAHEDRON = 1;
+	private final int CUBE = 2;
 
 	// The objects
 	Object3D[] _objects = new Object3D[3];
@@ -108,17 +64,26 @@ class Renderer implements GLSurfaceView.Renderer {
 	// Modelview/Projection matrices
 	private float[] mMVPMatrix = new float[16];
 	private float[] mProjMatrix = new float[16];
-	private float[] mMMatrix = new float[16];
-	private float[] mVMatrix = new float[16];
+	private float[] mRotXMatrix = new float[16];	// rotation x
+	private float[] mRotYMatrix = new float[16];	// rotation x
+	private float[] mMMatrix = new float[16];		// rotation
+	private float[] mVMatrix = new float[16]; 		// modelview
 
-	// shader handles
-	private int mProgram;
-	//private int mTextureID;
-	private int muMVPMatrixHandle;
-	private int maPositionHandle;
-	private int maNormalHandle;
-	//private int maTextureHandle;
-
+	// light parameters
+	private float[] lightPos;
+	private float[] lightColor;
+	private float[] lightAmbient;
+	private float[] lightDiffuse;
+	
+	// material properties
+	private float[] matAmbient;
+	private float[] matDiffuse;
+	private float[] matSpecular;
+	private float matShininess;
+	
+	// eye pos
+	private float[] eyePos = {-5.0f, 0.0f, 0.0f};
+	
 	private Context mContext;
 	private static String TAG = "GLES20TriangleRenderer";
 
@@ -128,9 +93,6 @@ class Renderer implements GLSurfaceView.Renderer {
 	public Renderer(Context context) {
 
 		mContext = context;
-		/*mTriangleVertices = shortBuffer.allocateDirect(mTriangleVerticesData.length
-		 * FLOAT_SIZE_BYTES).order(shortOrder.nativeOrder()).asFloatBuffer();
-        mTriangleVertices.put(mTriangleVerticesData).position(0);*/
 
 		// setup all the shaders
 		vShaders = new int[3];
@@ -159,7 +121,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * GL FUNCTIONS
 	 ****************************/
 	/*
-	 * Called on every frame
+	 * Draw function - called for every frame
 	 */
 	public void onDrawFrame(GL10 glUnused) {
 		// Ignore the passed-in GL10 interface, and use the GLES20
@@ -181,14 +143,30 @@ class Renderer implements GLSurfaceView.Renderer {
 		long time = SystemClock.uptimeMillis() % 4000L;
 		float angle = 0.090f * ((int) time);
 		
-		Matrix.setRotateM(mMMatrix, 0, angle, 1.0f, 0.0f, 0.0f);
+		// Rotation along x
+		Matrix.setRotateM(mRotXMatrix, 0, this.mAngleY, -1.0f, 0.0f, 0.0f);
+		Matrix.setRotateM(mRotYMatrix, 0, this.mAngleX, 0.0f, 1.0f, 0.0f);
+		Matrix.multiplyMM(mMMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
+		//Matrix.setRotateM(mMMatrix, 0, angle, 1.0f, 0.0f, 0.0f);
 		//Matrix.scaleM(mMMatrix, 0, 100.0f, 100.0f, 100.0f);
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
 
-		GLES20.glUniformMatrix4fv(shader.getMuMVPMatrixHandle(), 1, false, mMVPMatrix, 0);
+		GLES20.glUniformMatrix4fv(shader.muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
+		// lighting variables
+		// send to shaders
+		GLES20.glUniform4fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
+		GLES20.glUniform4fv(_shaders[this._currentShader].lightColorHandle, 1, lightColor, 0);
+	
+		// material 
+		GLES20.glUniform4fv(_shaders[this._currentShader].matAmbientHandle, 1, matAmbient, 0);
+		GLES20.glUniform4fv(_shaders[this._currentShader].matDiffuseHandle, 1, matDiffuse, 0);
+		GLES20.glUniform4fv(_shaders[this._currentShader].matSpecularHandle, 1, matSpecular, 0);
+		GLES20.glUniform1f(_shaders[this._currentShader].matShininessHandle, matShininess);
 		
+		// eyepos
+		GLES20.glUniform3fv(_shaders[this._currentShader].eyeHandle, 1, eyePos, 0);
 		
 		/*** DRAWING OBJECT **/
 		// Get buffers from mesh
@@ -196,45 +174,28 @@ class Renderer implements GLSurfaceView.Renderer {
 		Mesh mesh = ob.getMesh();
 		FloatBuffer _vb = mesh.get_vb();
 		ShortBuffer _ib = mesh.get_ib();
-		float[] _vertices = mesh.get_vertices();
+		
 		short[] _indices = mesh.get_indices();
 		
 		// Textures
 		// has texture?
-		GLES20.glUniform1f(shader.getHasTextureHandle(), ob.hasTexture() ? 1 : 0);
-		
-		// Draw using index buffer
-		
+		GLES20.glUniform1f(shader.hasTextureHandle, ob.hasTexture() ? 1 : 0);
+	
 		// the vertex coordinates
 		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
-		GLES20.glVertexAttribPointer(shader.getMaPositionHandle(), 3, GLES20.GL_FLOAT, false,
+		GLES20.glVertexAttribPointer(shader.maPositionHandle, 3, GLES20.GL_FLOAT, false,
 				 TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(shader.getMaPositionHandle());
+		GLES20.glEnableVertexAttribArray(shader.maPositionHandle);
 		 
 		// the normal info
 		_vb.position(TRIANGLE_VERTICES_DATA_NOR_OFFSET);
-		GLES20.glVertexAttribPointer(shader.getMaNormalHandle(), 3, GLES20.GL_FLOAT, false,
+		GLES20.glVertexAttribPointer(shader.maNormalHandle, 3, GLES20.GL_FLOAT, false,
 				 TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(shader.getMaNormalHandle());
+		GLES20.glEnableVertexAttribArray(shader.maNormalHandle);
 		
-		
-		
-		
+		// Draw with indices
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
 		checkGlError("glDrawElements");
-		
-		
-		
-		
-		// SOMETHING THAT WORKS - uses glDrawArrays
-		/*_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
-        GLES20.glVertexAttribPointer(this.maPositionHandle, 3, GLES20.GL_FLOAT, false,
-                TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-        //checkGlError("glVertexAttribPointer maPosition");
-        //mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET);
-        GLES20.glEnableVertexAttribArray(this.maPositionHandle);
-        checkGlError("glEnableVertexAttribArray maPositionHandle");
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, _vertices.length);*/
         
 		/** END DRAWING OBJECT ***/
 	}
@@ -259,12 +220,39 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Generate all the shader programs
 		// initialize shaders - PROBLEM!
 		try {
-			_shaders[0] = new Shader(vShaders[this._currentShader], fShaders[this._currentShader], mContext, false, 0);
+			_shaders[0] = new Shader(vShaders[0], fShaders[0], mContext, false, 0);
+			_shaders[1] = new Shader(vShaders[this._currentShader], fShaders[this._currentShader], mContext, false, 0);
 		} catch (Exception e) {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());
 		}
-
-		   
+		
+		// light variables
+		float[] lightP = {6.0f, 6.0f, 6.0f, 0};
+		this.lightPos = lightP;
+		
+		float[] lightC = {1.0f, 0.0f, 0.0f};
+		this.lightColor = lightC;
+		
+		//float[] lA = {
+		//private float[] lightAmbient;
+		//private float[] lightDiffuse;
+		
+		// material properties
+		float[] mA = {0.0f, 0.0f, 1.0f, 1.0f};
+		matAmbient = mA;
+		
+		float[] mD = {0.7f, 0.7f, 1.0f, 1.0f};
+		matDiffuse = mD;
+		
+		float[] mS =  {1.0f, 1.0f, 1.0f, 1.0f};
+		matSpecular = mS;
+		
+		matShininess = 20.0f;
+		
+		// send to shaders
+		//GLES20.glUniform3fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
+		//GLES20.glUniform3fv(_shaders[this._currentShader].lightColorHandle, 1, lightColor, 0);
+		
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
 	}
@@ -287,80 +275,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	public void setObject(int object) {
 		_currentObject = object;
-
+	
 		// setup texture?
 		//_objects[_currentObject].setupTexture(mContext);
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	private int loadShader(int shaderType, String source) {
-		int shader = GLES20.glCreateShader(shaderType);
-		if (shader != 0) {
-			GLES20.glShaderSource(shader, source);
-			GLES20.glCompileShader(shader);
-			int[] compiled = new int[1];
-			GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
-			if (compiled[0] == 0) {
-				Log.e(TAG, "Could not compile shader " + shaderType + ":");
-				Log.e(TAG, GLES20.glGetShaderInfoLog(shader));
-				GLES20.glDeleteShader(shader);
-				shader = 0;
-			}
-		}
-		return shader;
-	}
-
-	private int createProgram(String vertexSource, String fragmentSource) {
-		int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexSource);
-		if (vertexShader == 0) {
-			return 0;
-		}
-
-		int pixelShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentSource);
-		if (pixelShader == 0) {
-			return 0;
-		}
-
-		int program = GLES20.glCreateProgram();
-		if (program != 0) {
-			GLES20.glAttachShader(program, vertexShader);
-			checkGlError("glAttachShader");
-			GLES20.glAttachShader(program, pixelShader);
-			checkGlError("glAttachShader");
-			GLES20.glLinkProgram(program);
-			int[] linkStatus = new int[1];
-			GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
-			if (linkStatus[0] != GLES20.GL_TRUE) {
-				Log.e(TAG, "Could not link program: ");
-				Log.e(TAG, GLES20.glGetProgramInfoLog(program));
-				GLES20.glDeleteProgram(program);
-				program = 0;
-			}
-		}
-		return program;
 	}
 
 	// debugging opengl

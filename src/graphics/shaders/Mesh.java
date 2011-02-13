@@ -234,18 +234,18 @@ public class Mesh {
 		_faceNormals[i * 3 + 1] = cp[1];
 		_faceNormals[i * 3 + 2] = cp[2];
 		
-		// Setup for vertex normal construction
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		// Setup for vertex normal construction;
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 		
-		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
-		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
-		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 		
-		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 3] += cp[0];
-		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 4] += cp[1];
-		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += cp[2];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 		
 		// increment # of faces around the vertex
 		_surroundingFaces[firstV]++;
