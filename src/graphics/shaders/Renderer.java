@@ -64,6 +64,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	// Modelview/Projection matrices
 	private float[] mMVPMatrix = new float[16];
 	private float[] mProjMatrix = new float[16];
+	private float[] mScaleMatrix = new float[16];   // scaling
 	private float[] mRotXMatrix = new float[16];	// rotation x
 	private float[] mRotYMatrix = new float[16];	// rotation x
 	private float[] mMMatrix = new float[16];		// rotation
@@ -83,6 +84,11 @@ class Renderer implements GLSurfaceView.Renderer {
 	
 	// eye pos
 	private float[] eyePos = {-5.0f, 0.0f, 0.0f};
+	
+	// scaling
+	float scaleX = 1.0f;
+	float scaleY = 1.0f;
+	float scaleZ = 1.0f;
 	
 	private Context mContext;
 	private static String TAG = "GLES20TriangleRenderer";
@@ -143,10 +149,17 @@ class Renderer implements GLSurfaceView.Renderer {
 		long time = SystemClock.uptimeMillis() % 4000L;
 		float angle = 0.090f * ((int) time);
 		
+		// scaling
+		Matrix.setIdentityM(mScaleMatrix, 0);
+		Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
+		
 		// Rotation along x
 		Matrix.setRotateM(mRotXMatrix, 0, this.mAngleY, -1.0f, 0.0f, 0.0f);
 		Matrix.setRotateM(mRotYMatrix, 0, this.mAngleX, 0.0f, 1.0f, 0.0f);
-		Matrix.multiplyMM(mMMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
+		
+		float tempMatrix[] = new float[16]; 
+		Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
+		Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
 		//Matrix.setRotateM(mMMatrix, 0, angle, 1.0f, 0.0f, 0.0f);
 		//Matrix.scaleM(mMMatrix, 0, 100.0f, 100.0f, 100.0f);
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
@@ -227,10 +240,10 @@ class Renderer implements GLSurfaceView.Renderer {
 		}
 		
 		// light variables
-		float[] lightP = {6.0f, 6.0f, 6.0f, 0};
+		float[] lightP = {3.0f, 3.0f, -3.0f, 0};
 		this.lightPos = lightP;
 		
-		float[] lightC = {1.0f, 0.0f, 0.0f};
+		float[] lightC = {1.0f, 0.5f, 0.0f};
 		this.lightColor = lightC;
 		
 		//float[] lA = {
@@ -241,7 +254,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		float[] mA = {0.0f, 0.0f, 1.0f, 1.0f};
 		matAmbient = mA;
 		
-		float[] mD = {0.7f, 0.7f, 1.0f, 1.0f};
+		float[] mD = {1.0f, 0.5f, 0.5f, 1.0f};
 		matDiffuse = mD;
 		
 		float[] mS =  {1.0f, 1.0f, 1.0f, 1.0f};
@@ -280,6 +293,28 @@ class Renderer implements GLSurfaceView.Renderer {
 		//_objects[_currentObject].setupTexture(mContext);
 	}
 
+	/**
+	 * Scaling
+	 */
+	public void increaseScale() {
+		scaleX += 0.01f;
+		scaleY += 0.01f;
+		scaleZ += 0.01f;
+	}
+	
+	public void decreaseScale() {
+		scaleX -= 0.01f;
+		scaleY -= 0.01f;
+		scaleZ -= 0.01f;
+		
+	}
+	
+	public void defaultScale() {
+		scaleX = 1f;
+		scaleY = 1f;
+		scaleZ = 1f;
+	}
+	
 	// debugging opengl
 	private void checkGlError(String op) {
 		int error;

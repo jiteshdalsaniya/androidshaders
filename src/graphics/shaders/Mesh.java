@@ -133,7 +133,7 @@ public class Mesh {
 		    	 _vertices[i * this.VERTEX_ARRAY_SIZE]     = Float.parseFloat(tokenizer.nextToken());
 		    	 _vertices[i * this.VERTEX_ARRAY_SIZE + 1] = Float.parseFloat(tokenizer.nextToken());
 		    	 _vertices[i * this.VERTEX_ARRAY_SIZE + 2] = Float.parseFloat(tokenizer.nextToken());
-		    	 //Log.d("Str vertices:", _vertices[i * this.VERTEX_ARRAY_SIZE + 0] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 1] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 2]);
+		    	 Log.d("Str vertices:", _vertices[i * this.VERTEX_ARRAY_SIZE + 0] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 1] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 2]);
 		    }
 		    
 		    Log.d("ReadFile", "Read vertices");
@@ -219,20 +219,24 @@ public class Mesh {
 	 */
 	private void setFaceNormal(int i, int firstV, int secondV, int thirdV) {
 		// get coordinates of all the vertices
-		float v1[] = {_vertices[firstV * 3], _vertices[firstV * 3 + 1], _vertices[firstV * 3 + 2]};
-		float v2[] = {_vertices[secondV * 3], _vertices[secondV * 3 + 1], _vertices[secondV * 3 + 2]};
-		float v3[] = {_vertices[thirdV * 3], _vertices[thirdV * 3 + 1], _vertices[thirdV * 3 + 2]};
+		float v1[] = {_vertices[firstV * VERTEX_ARRAY_SIZE], _vertices[firstV * VERTEX_ARRAY_SIZE + 1], _vertices[firstV * VERTEX_ARRAY_SIZE + 2]};
+		float v2[] = {_vertices[secondV * VERTEX_ARRAY_SIZE], _vertices[secondV * VERTEX_ARRAY_SIZE + 1], _vertices[secondV * VERTEX_ARRAY_SIZE + 2]};
+		float v3[] = {_vertices[thirdV * VERTEX_ARRAY_SIZE], _vertices[thirdV * VERTEX_ARRAY_SIZE + 1], _vertices[thirdV * VERTEX_ARRAY_SIZE + 2]};
 		
 		// calculate the cross product of v1-v2 and v2-v3
 		float v1v2[] = {v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]};
-		float v2v3[] = {v2[0]-v3[0], v2[1]-v3[1], v2[2]-v3[2]};
+		//float v2v3[] = {v2[0]-v3[0], v2[1]-v3[1], v2[2]-v3[2]};
+		float v3v2[] = {v3[0]-v2[0], v3[1]-v2[1], v3[2]-v2[2]};
 		
-		float cp[] = crossProduct(v1v2, v2v3);
+		Log.d("V1V2: ", v1v2[0] + "," + v1v2[1] + "," + v1v2[2]);
+		Log.d("V3V2: ", v3v2[0] + "," + v3v2[1] + "," + v3v2[2]);
+		float cp[] = crossProduct(v1v2, v3v2);
 		
 		// set the normal
 		_faceNormals[i * 3]     = cp[0];
 		_faceNormals[i * 3 + 1] = cp[1];
 		_faceNormals[i * 3 + 2] = cp[2];
+		Log.d("NORMAL:", cp[0] + "," + cp[1] + "," + cp[2]);
 		
 		// Setup for vertex normal construction;
 		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
