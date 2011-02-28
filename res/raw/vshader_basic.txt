@@ -1,4 +1,5 @@
 uniform mat4 uMVPMatrix;
+uniform mat4 normalMatrix;
 uniform float hasTexture;
 
 // eye pos
@@ -28,7 +29,7 @@ void main() {
 	tex = hasTexture;
 	
 	// normal
-	EyespaceNormal = vec3(uMVPMatrix * vec4(aNormal, 0.0));
+	EyespaceNormal = vec3(normalMatrix * vec4(aNormal, 1.0));
 	
 	// the vertex position
 	vec4 position = uMVPMatrix * aPosition; 

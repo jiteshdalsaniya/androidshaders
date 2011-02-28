@@ -21,7 +21,7 @@ public class Shader {
 	private int _program, _vertexShader, _pixelShader;
 	
 	// other handles - position/texture/mvpmatrix/normal
-	public int muMVPMatrixHandle;
+	public int muMVPMatrixHandle, normalMatrixHandle;
 	public int maPositionHandle;
 	public int maNormalHandle;
 	public int hasTextureHandle;   
@@ -213,6 +213,13 @@ public class Shader {
             throw new RuntimeException("Could not get attrib location for uMVPMatrix");
         }
         
+        // normal matrix handle
+        normalMatrixHandle = GLES20.glGetUniformLocation(_program, "normalMatrix");
+        checkGlError("glGetUniformLocation uMVPMatrix");
+        if (normalMatrixHandle == -1) {
+            throw new RuntimeException("Could not get attrib location for normalMatrix");
+        }
+        
         // light position/color handles
         lightColorHandle = GLES20.glGetUniformLocation(_program, "lightColor");
         checkGlError("glGetUniformLocation lightColor");
@@ -265,6 +272,7 @@ public class Shader {
 		GLES20.glEnableVertexAttribArray(this.maNormalHandle);
 		GLES20.glEnableVertexAttribArray(this.hasTextureHandle);
 		GLES20.glEnableVertexAttribArray(this.muMVPMatrixHandle);
+		GLES20.glEnableVertexAttribArray(this.normalMatrixHandle);
 		
 		GLES20.glEnableVertexAttribArray(this.lightColorHandle);
 		GLES20.glEnableVertexAttribArray(this.lightPosHandle);

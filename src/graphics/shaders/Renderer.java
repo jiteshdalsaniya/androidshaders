@@ -69,7 +69,8 @@ class Renderer implements GLSurfaceView.Renderer {
 	private float[] mRotYMatrix = new float[16];	// rotation x
 	private float[] mMMatrix = new float[16];		// rotation
 	private float[] mVMatrix = new float[16]; 		// modelview
-
+	private float[] normalMatrix = new float[16]; 	// modelview normal
+	
 	// light parameters
 	private float[] lightPos;
 	private float[] lightColor;
@@ -132,7 +133,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	public void onDrawFrame(GL10 glUnused) {
 		// Ignore the passed-in GL10 interface, and use the GLES20
 		// class's static methods instead.
-		GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 
 		// the current shader
@@ -164,9 +165,18 @@ class Renderer implements GLSurfaceView.Renderer {
 		//Matrix.scaleM(mMMatrix, 0, 100.0f, 100.0f, 100.0f);
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
-
+		
+		// send to the shader
 		GLES20.glUniformMatrix4fv(shader.muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
+		// Create the normal modelview matrix
+		// Invert + transpose of mvpmatrix
+		Matrix.invertM(normalMatrix, 0, mMVPMatrix, 0);
+		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
+		
+		// send to the shader
+		GLES20.glUniformMatrix4fv(shader.normalMatrixHandle, 1, false, mMVPMatrix, 0);
+		
 		// lighting variables
 		// send to shaders
 		GLES20.glUniform4fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
@@ -223,7 +233,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glViewport(0, 0, width, height);
 		float ratio = (float) width / height;
 		//Matrix.frustumM(mProjMatrix, 0, -5, 5, -1, 1, 0.5f, 6.0f);
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 7);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 11);
 	}
 
 	/**
@@ -239,11 +249,19 @@ class Renderer implements GLSurfaceView.Renderer {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());
 		}
 		
+		//GLES20.glEnable   ( GLES20.GL_DEPTH_TEST );
+		GLES20.glDepthFunc( GLES20.GL_LEQUAL     );
+		GLES20.glDepthMask( true );
+		
+		// cull backface
+		GLES20.glEnable( GLES20.GL_CULL_FACE );
+		GLES20.glCullFace(GLES20.GL_BACK); // Should be culling GL_BACK though - fix meshes?
+		
 		// light variables
-		float[] lightP = {3.0f, 3.0f, -3.0f, 0};
+		float[] lightP = {3.0f, 3.0f, -3.0f, 1};
 		this.lightPos = lightP;
 		
-		float[] lightC = {1.0f, 0.5f, 0.0f};
+		float[] lightC = {1.0f, 0.5f, 0.5f};
 		this.lightColor = lightC;
 		
 		//float[] lA = {
@@ -251,7 +269,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		//private float[] lightDiffuse;
 		
 		// material properties
-		float[] mA = {0.0f, 0.0f, 1.0f, 1.0f};
+		float[] mA = {1.0f, 0.5f, 0.5f, 1.0f};
 		matAmbient = mA;
 		
 		float[] mD = {1.0f, 0.5f, 0.5f, 1.0f};
@@ -260,11 +278,14 @@ class Renderer implements GLSurfaceView.Renderer {
 		float[] mS =  {1.0f, 1.0f, 1.0f, 1.0f};
 		matSpecular = mS;
 		
-		matShininess = 20.0f;
+		matShininess = 5.0f;
 		
 		// send to shaders
 		//GLES20.glUniform3fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
 		//GLES20.glUniform3fv(_shaders[this._currentShader].lightColorHandle, 1, lightColor, 0);
+		GLES20.glClearDepthf(1.0f);
+		//GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+		GLES20.glDepthFunc(GLES20.GL_EQUAL);//.enable(gl.DEPTH_TEST);
 		
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
