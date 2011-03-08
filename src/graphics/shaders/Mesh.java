@@ -34,7 +34,7 @@ public class Mesh {
 
 	// the number of elements for each vertex
 	// [coordx, coordy, coordz, normalx, normaly, normalz....]
-	private final int VERTEX_ARRAY_SIZE = 3;
+	private final int VERTEX_ARRAY_SIZE = 6;
 	
 	// if tex coords exist
 	private final int VERTEX_TC_ARRAY_SIZE = 8;
@@ -119,10 +119,10 @@ public class Mesh {
 			_vb.position(0);
 			
 			// normal buffer
-			_nb = ByteBuffer.allocateDirect(_normals.length
+			/*_nb = ByteBuffer.allocateDirect(_normals.length
 					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
 			_nb.put(_normals);
-			_nb.position(0);
+			_nb.position(0);*/
 
 			// index buffer
 			_ib = ByteBuffer.allocateDirect(_indices.length
@@ -199,9 +199,9 @@ public class Mesh {
 
 			// initialize to 0
 			for(int x = 0; x < _numVertices; x++) {
-				_normals[x * this.VERTEX_ARRAY_SIZE + 0] = 0;
-				_normals[x * this.VERTEX_ARRAY_SIZE + 1] = 0;
-				_normals[x * this.VERTEX_ARRAY_SIZE + 2] = 0;
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 3] = 0;
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 4] = 0;
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 5] = 0;
 				_surroundingFaces[x] = 0;
 			}
 
@@ -231,17 +231,17 @@ public class Mesh {
 
 			// finally calculate the exact vertex normals
 			for(int x = 0; x < _numVertices; x++) {
-				//_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
-				//_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
-				//_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
+				_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
 
-				_normals[x * 3]     /= _surroundingFaces[x];
+				/*_normals[x * 3]     /= _surroundingFaces[x];
 				_normals[x * 3 + 1] /= _surroundingFaces[x];
-				_normals[x * 3 + 2] /= _surroundingFaces[x];
+				_normals[x * 3 + 2] /= _surroundingFaces[x];*/
 				
 				Log.d("SurroundingFaces: ", x + ": " + _surroundingFaces[x]);
 
-				Log.d("Exact normal: ", _normals[x * 3] + "," + _normals[x * 3 + 1] + "," + _normals[x * 3 + 2]);
+				//Log.d("Exact normal: ", _normals[x * 3] + "," + _normals[x * 3 + 1] + "," + _normals[x * 3 + 2]);
 			}
 			
 			return 1;
@@ -446,7 +446,7 @@ public class Mesh {
 		Log.d("NORMAL:", cp[0] + "," + cp[1] + "," + cp[2]);
 
 		// Setup for vertex normal construction;
-		_normals[firstV * 3]     += _faceNormals[i * 3];
+		/*_normals[firstV * 3]     += _faceNormals[i * 3];
 		_normals[firstV * 3 + 1] += _faceNormals[i * 3 + 1];
 		_normals[firstV * 3 + 2] += _faceNormals[i * 3 + 2];
 		
@@ -456,15 +456,19 @@ public class Mesh {
 		
 		_normals[thirdV * 3]     += _faceNormals[i * 3];
 		_normals[thirdV * 3 + 1] += _faceNormals[i * 3 + 1];
-		_normals[thirdV * 3 + 2] += _faceNormals[i * 3 + 2];
+		_normals[thirdV * 3 + 2] += _faceNormals[i * 3 + 2];*/
 
-		/*_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
+		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
+		
+		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
 		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
 		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 
 		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
 		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
-		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];*/
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 
 		// increment # of faces around the vertex
 		_surroundingFaces[firstV]++;

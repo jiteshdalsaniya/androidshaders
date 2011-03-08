@@ -1,9 +1,10 @@
 precision mediump float;
+varying vec2 vTextureCoord;
 //uniform sampler2D sTexture;
-varying float hasTex;
 
 varying vec3 vNormal;
 varying vec3 EyespaceNormal;
+varying float tex;
 
 // light
 uniform vec4 lightPos;
