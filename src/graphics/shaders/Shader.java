@@ -76,7 +76,7 @@ public class Shader {
 		    //Log.d("StringBufferVS", vs.toString());
 		    
 		    // Now read FS
-		    Log.d("loadFile", "Trying to read vs");
+		    Log.d("loadFile", "Trying to read ps");
 			// Read VS first
 			inputStream = context.getResources().openRawResource(fID);
 			// setup Bufferedreader
@@ -148,9 +148,9 @@ public class Shader {
         _program = GLES20.glCreateProgram();
         if (_program != 0) {
             GLES20.glAttachShader(_program, _vertexShader);
-            checkGlError("glAttachShader");
+            checkGlError("glAttachShader VS");
             GLES20.glAttachShader(_program, _pixelShader);
-            checkGlError("glAttachShader");
+            checkGlError("glAttachShader PS");
             GLES20.glLinkProgram(_program);
             int[] linkStatus = new int[1];
             GLES20.glGetProgramiv(_program, GLES20.GL_LINK_STATUS, linkStatus, 0);
@@ -161,6 +161,7 @@ public class Shader {
                 _program = 0;
                 return 0;
             }
+            Log.d("SHADER CREATION", "Created Shader " + _program);
         }
         else
         	Log.d("CreateProgram", "Could not create program");
@@ -188,8 +189,6 @@ public class Shader {
             throw new RuntimeException("Could not get attrib location for normal");
         }
         
-        
-        
         // texture
         // handle for whether textures are available or not
         hasTextureHandle = GLES20.glGetUniformLocation(_program, "hasTexture");
@@ -198,13 +197,10 @@ public class Shader {
             throw new RuntimeException("Could not get attrib location for hasTextureHandle");
         }
         
-        if (hasTextures) {
-	        maTextureHandle = GLES20.glGetAttribLocation(_program, "textureCoord");
-	        checkGlError("glGetAttribLocation aTextureCoord");
-	        if (maTextureHandle == -1) {
-	            throw new RuntimeException("Could not get attrib location for aTextureCoord");
-	        }
-        }
+        /*maTextureHandle = GLES20.glGetAttribLocation(_program, "textureCoord");
+	    checkGlError("glGetAttribLocation aTextureCoord");
+	    if (maTextureHandle == -1)
+	    	throw new RuntimeException("Could not get attrib location for aTextureCoord");*/
 
         // modelview/projection matrix
         muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "uMVPMatrix");

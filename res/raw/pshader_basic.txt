@@ -1,10 +1,9 @@
 precision mediump float;
-varying vec2 vTextureCoord;
 //uniform sampler2D sTexture;
+varying float hasTex;
 
 varying vec3 vNormal;
 varying vec3 EyespaceNormal;
-varying float tex;
 
 // light
 uniform vec4 lightPos;
@@ -31,7 +30,6 @@ void main() {
     vec4 e = matSpecular;
     vec3 g = eyePos;
     float f = matShininess;
-	
 	
 	vec3 N = normalize(EyespaceNormal);
     vec3 E = normalize(eyeVec); 

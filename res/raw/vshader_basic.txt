@@ -1,6 +1,7 @@
 uniform mat4 uMVPMatrix;
 uniform mat4 normalMatrix;
 uniform float hasTexture;
+varying float hasTex;
 
 // eye pos
 uniform vec3 eyePos;
@@ -21,12 +22,11 @@ uniform float matShininess;
 
 varying vec3 vNormal;
 varying vec3 EyespaceNormal;
-varying float tex;
 
 varying vec3 lightDir, eyeVec;
 
 void main() {
-	tex = hasTexture;
+	hasTex = hasTexture;
 	
 	// normal
 	EyespaceNormal = vec3(normalMatrix * vec4(aNormal, 1.0));

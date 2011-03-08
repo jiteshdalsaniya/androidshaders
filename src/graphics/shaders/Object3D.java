@@ -7,14 +7,13 @@ package graphics.shaders;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
+import android.util.Log;
 
 public class Object3D {
 	/*************************
@@ -80,6 +79,8 @@ public class Object3D {
 		if (!hasTexture)
 			return;
 		
+		Log.d("Texture: ", "TEXTURE BEING SETUP " + this.meshID);
+		
 		// create new texture ids
 		int[] textures = new int[1];
         GLES20.glGenTextures(1, textures, 0);
@@ -113,7 +114,7 @@ public class Object3D {
         }
 
         // create it 
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        //GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
         bitmap.recycle();
 	}
 

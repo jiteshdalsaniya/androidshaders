@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import android.content.Context;
@@ -33,17 +34,28 @@ public class Mesh {
 
 	// the number of elements for each vertex
 	// [coordx, coordy, coordz, normalx, normaly, normalz....]
-	private final int VERTEX_ARRAY_SIZE = 6;
+	private final int VERTEX_ARRAY_SIZE = 3;
+	
+	// if tex coords exist
+	private final int VERTEX_TC_ARRAY_SIZE = 8;
 
 	// Vertices
 	private float _vertices[];
 
+	// Normals
+	private float _normals[];
+	
+	// Texture coordinates
+	private float _texCoords[];
+	
 	// Indices
-	private short _indices[];
-
-	// Buffer [index + vertex]
+	private short _indices[];	
+	
+	// Buffers - index, vertex, normals and texcoords
 	private FloatBuffer _vb;
+	private FloatBuffer _nb;
 	private ShortBuffer _ib;
+	private FloatBuffer _tcb;
 
 	// Normals
 	private float[] _faceNormals;
@@ -76,6 +88,59 @@ public class Mesh {
 	 *************************/
 
 	/**
+	 * Tries to load a file - either a .OBJ or a .OFF
+	 * @return 1 if file was loaded properly, 0 if not 
+	 */
+	private int loadFile() {
+		Log.d("Start-loadFile", "Starting loadFile");
+		try {
+			// Read the file from the resource
+			Log.d("loadFile", "Trying to buffer read");
+			InputStream inputStream = activity.getResources().openRawResource(meshID);
+
+			// setup Bufferedreader
+			BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
+
+			// Try to parse the file
+			Log.d("loadFile", "Trying to buffer read2");
+			String str = in.readLine();
+
+			// Make sure it's a .OFF file
+			if (str.equals("OFF"))
+				loadOFF(in);
+			else if (str.equals("OBJ"))
+				loadOBJ(in);
+			
+			// Generate your vertex, normal and index buffers
+			// vertex buffer
+			_vb = ByteBuffer.allocateDirect(_vertices.length
+					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
+			_vb.put(_vertices);
+			_vb.position(0);
+			
+			// normal buffer
+			_nb = ByteBuffer.allocateDirect(_normals.length
+					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
+			_nb.put(_normals);
+			_nb.position(0);
+
+			// index buffer
+			_ib = ByteBuffer.allocateDirect(_indices.length
+					* SHORT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asShortBuffer();
+			_ib.put(_indices);
+			_ib.position(0);
+
+			Log.d("loadFile - size", _indices.length/3 + "," + _vertices.length);
+			// close the reader
+			in.close();
+			return 1;
+		} catch (Exception e) {
+			Log.d("Error-LoadFile", "FOUND ERROR: " + e.toString());
+			return 0;
+		}
+	}
+
+	/**
 	 * Loads the .off file
 	 * 
 	 * OFF FORMAT:
@@ -94,26 +159,10 @@ public class Mesh {
 	 * 
 	 * @return 1 if file was loaded properly, 0 if not 
 	 */
-	private int loadFile() {
-		Log.d("Start-loadFile", "Starting loadFile");
+	private int loadOFF(BufferedReader in) throws Exception {
 		try {
-			// Read the file from the resource
-			Log.d("loadFile", "Trying to buffer read");
-			InputStream inputStream = activity.getResources().openRawResource(meshID);
-
-			// setup Bufferedreader
-			BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
-
-			// Try to parse the file
-			Log.d("loadFile", "Trying to buffer read2");
-			String str = in.readLine();
-
-			// Make sure it's a .OFF file
-			//if (!str.equals("OFF"))
-			//throw new Exception("NOT OFF!!");
-
 			/* read # of vertices, faces, edges */
-			str = in.readLine();
+			String str = in.readLine();
 			Log.d("STR", str);
 
 			// tokenizer based on space
@@ -143,15 +192,16 @@ public class Mesh {
 			int arraySize = _numFaces * 3;
 			_indices = new short[arraySize];
 
-			// setup the face normals
+			// setup the normals
+			_normals = new float[_numVertices * this.VERTEX_ARRAY_SIZE]; 
 			_faceNormals = new float[arraySize]; // NEEDED?
 			_surroundingFaces = new int[_numVertices]; // # of surrounding faces for each vertex
 
 			// initialize to 0
 			for(int x = 0; x < _numVertices; x++) {
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 3] = 0;
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 4] = 0;
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 5] = 0;
+				_normals[x * this.VERTEX_ARRAY_SIZE + 0] = 0;
+				_normals[x * this.VERTEX_ARRAY_SIZE + 1] = 0;
+				_normals[x * this.VERTEX_ARRAY_SIZE + 2] = 0;
 				_surroundingFaces[x] = 0;
 			}
 
@@ -181,75 +231,175 @@ public class Mesh {
 
 			// finally calculate the exact vertex normals
 			for(int x = 0; x < _numVertices; x++) {
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
-				_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
+				//_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
+				//_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
+				//_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
 
+				_normals[x * 3]     /= _surroundingFaces[x];
+				_normals[x * 3 + 1] /= _surroundingFaces[x];
+				_normals[x * 3 + 2] /= _surroundingFaces[x];
+				
 				Log.d("SurroundingFaces: ", x + ": " + _surroundingFaces[x]);
 
-				Log.d("Exact normal: ", _vertices[x * this.VERTEX_ARRAY_SIZE + 3] + "," + _vertices[x * this.VERTEX_ARRAY_SIZE + 4] + "," + _vertices[x * this.VERTEX_ARRAY_SIZE + 5]);
+				Log.d("Exact normal: ", _normals[x * 3] + "," + _normals[x * 3 + 1] + "," + _normals[x * 3 + 2]);
 			}
-
-			// TEMPORARY
-			/*_vertices[0 * this.VERTEX_ARRAY_SIZE + 3] = 0.0f;
-			_vertices[0 * this.VERTEX_ARRAY_SIZE + 4] = 0.0f;
-			_vertices[0 * this.VERTEX_ARRAY_SIZE + 5] = 1.0f;
 			
-			_vertices[1 * this.VERTEX_ARRAY_SIZE + 3] = -1.0f;
-			_vertices[1 * this.VERTEX_ARRAY_SIZE + 4] = 1.0f;
-			_vertices[1 * this.VERTEX_ARRAY_SIZE + 5] = 1.0f;
+			return 1;
 			
-			_vertices[2 * this.VERTEX_ARRAY_SIZE + 3] = -1.0f;
-			_vertices[2 * this.VERTEX_ARRAY_SIZE + 4] = -1.0f;
-			_vertices[2 * this.VERTEX_ARRAY_SIZE + 5] = 1.0f;
-			
-			_vertices[3 * this.VERTEX_ARRAY_SIZE + 3] = 1.0f;
-			_vertices[3 * this.VERTEX_ARRAY_SIZE + 4] = -1.0f;
-			_vertices[3 * this.VERTEX_ARRAY_SIZE + 5] = 1.0f;
-			
-			_vertices[4 * this.VERTEX_ARRAY_SIZE + 3] = 1.0f;
-			_vertices[4 * this.VERTEX_ARRAY_SIZE + 4] = 1.0f;
-			_vertices[4 * this.VERTEX_ARRAY_SIZE + 5] = -1.0f;
-			
-			_vertices[5 * this.VERTEX_ARRAY_SIZE + 3] = -1.0f;
-			_vertices[5 * this.VERTEX_ARRAY_SIZE + 4] = 1.0f;
-			_vertices[5 * this.VERTEX_ARRAY_SIZE + 5] = -1.0f;
-			
-			_vertices[6 * this.VERTEX_ARRAY_SIZE + 3] = -1.0f;
-			_vertices[6 * this.VERTEX_ARRAY_SIZE + 4] = -1.0f;
-			_vertices[6 * this.VERTEX_ARRAY_SIZE + 5] = -1.0f;
-			
-			_vertices[7 * this.VERTEX_ARRAY_SIZE + 3] = 1.0f;
-			_vertices[7 * this.VERTEX_ARRAY_SIZE + 4] = -1.0f;
-			_vertices[7 * this.VERTEX_ARRAY_SIZE + 5] = -1.0f;*/
-			// END TEMPORARY
-
-
-			// Generate your vertex and index buffers
-			// vertex buffer
-			_vb = ByteBuffer.allocateDirect(_vertices.length
-					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
-			_vb.put(_vertices);
-			_vb.position(0);
-
-			// index buffer
-			_ib = ByteBuffer.allocateDirect(_indices.length
-					* SHORT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asShortBuffer();
-			_ib.put(_indices);
-			_ib.position(0);
-
-			Log.d("loadFile - size", _indices.length/3 + "," + _vertices.length);
-			// close the reader
-			in.close();
-
 		} catch (Exception e) {
-			Log.d("Error-LoadFile", "FOUND ERROR: " + e.toString());
-			return 0;
+			throw e;
 		}
-
-		return 1;
 	}
 
+	
+	/**
+	 * Loads an OBJ file
+	 * OBJ FORMAT:
+	 * ----------
+	   list of vertices:
+	     v x y z
+	   list of tex coords:
+	     vt u v
+	   list of normals:
+	     vn x y z
+	   list of faces
+	     f pos1/tc1/n1 pos2/tc2/n2 pos3/tc3/n3
+	 * 
+	 * @param in The BufferedReader object
+	 * @return true = file properly parsed
+	 * @throws Exception
+	 */
+	private int loadOBJ(BufferedReader in) throws Exception {
+		try {
+			/* read vertices first */
+			String str = in.readLine();
+			StringTokenizer t = new StringTokenizer(str);
+			
+			String type = t.nextToken();
+			
+			// keep reading vertices
+			int numVertices = 0;
+			ArrayList<Float> vs = new ArrayList<Float>(100); // vertices
+			ArrayList<Float> tc = new ArrayList<Float>(100); // texture coords
+			ArrayList<Float> ns = new ArrayList<Float>(100); // normals
+			
+			while(type.equals("v")) {
+				vs.add(Float.parseFloat(t.nextToken())); 	// x
+				vs.add(Float.parseFloat(t.nextToken()));	// y
+				vs.add(Float.parseFloat(t.nextToken()));	// z
+			
+				// next vertex
+				str = in.readLine();
+				t = new StringTokenizer(str);
+				
+				type = t.nextToken();
+				numVertices++;
+			}
+			
+			// read tex coords
+			int numTexCoords = 0;
+			if (type.equals("vt")) {
+				while(type.equals("vt")) {
+					tc.add(Float.parseFloat(t.nextToken())); 	// u
+					tc.add(Float.parseFloat(t.nextToken()));	// v
+				
+					// next texture coord
+					str = in.readLine();
+					t = new StringTokenizer(str);
+					
+					type = t.nextToken();
+					numTexCoords++;
+				}
+			}
+			
+			// read vertex normals
+			if (type.equals("vn")) {
+				while(type.equals("vn")) {
+					ns.add(Float.parseFloat(t.nextToken())); 	// x
+					ns.add(Float.parseFloat(t.nextToken()));	// y
+					ns.add(Float.parseFloat(t.nextToken()));	// y
+					
+					// next texture coord
+					str = in.readLine();
+					t = new StringTokenizer(str);
+					
+					type = t.nextToken();
+				}
+			}
+			
+			
+			// create the vertex buffer
+			_vertices = new float[numVertices * 3];
+			// create the normal buffer
+			_normals = new float[numVertices * 3];
+			// texcoord
+			_texCoords = new float[numTexCoords * 2];
+			
+			// copy over data - INEFFICIENT [SHOULD BE A BETTER WAY]
+			for(int i = 0; i < numVertices; i++) {
+				_vertices[i * 3] 	 = vs.get(i * 3);
+				_vertices[i * 3 + 1] = vs.get(i * 3 + 1);
+				_vertices[i * 3 + 2] = vs.get(i * 3 + 2);
+				
+				_normals[i * 3 ] 	= ns.get(i * 3);
+				_normals[i * 3 + 1] = ns.get(i * 3 + 1);
+				_normals[i * 3 + 2] = ns.get(i * 3 + 2);
+				
+				_texCoords[i * 3 ] 	  = tc.get(i * 3);
+				_texCoords[i * 3 + 1] = tc.get(i * 3 + 1);
+				_texCoords[i * 3 + 2] = tc.get(i * 3 + 2);
+			}
+			
+			// now read all the faces
+			String fFace, sFace, tFace;
+			ArrayList<Float> mainBuffer = new ArrayList<Float>(numVertices * 6);
+			ArrayList<Integer> indicesB = new ArrayList<Integer>(100);
+			StringTokenizer lt, ft; // the face tokenizer
+			if (type.equals("f")) {
+				while (type.equals("f")) {
+					// get all the faces
+					//fFace = t.nextToken();
+					//sFace = t.nextToken();
+					//tFace = t.nextToken();
+					
+					// Each line: f v1/vt1/vn1 v2/vt2/vn2 
+					// Figure out all the vertices
+					for (int j = 0; j < 3; j++) {
+						fFace = t.nextToken();
+						
+						// another tokenizer - based on /
+						ft = new StringTokenizer(fFace, "/");
+						int vert = Integer.parseInt(ft.nextToken()) - 1;
+						int texc = Integer.parseInt(ft.nextToken()) - 1;
+						int vertN = Integer.parseInt(ft.nextToken()) - 1;
+						
+						// Add to the index buffer
+						indicesB.add(vert);
+						
+						// Add all the vertex info
+						mainBuffer.add(_vertices[vert * 3]); 	// x
+						mainBuffer.add(_vertices[vert * 3 + 1]);// y
+						mainBuffer.add(_vertices[vert * 3 + 2]);// z
+						// add the normal info
+						mainBuffer.add(_normals[vert * 3]); 	// x
+						mainBuffer.add(_normals[vert * 3 + 1]); // y
+						mainBuffer.add(_normals[vert * 3 + 2]); // z
+					}
+					
+					// next face
+					str = in.readLine();
+					t = new StringTokenizer(str);
+					
+					type = t.nextToken();
+				}
+			}
+			
+			return 1;
+			
+		} catch(Exception e) {
+			throw e;
+		}
+	}
 	/**
 	 * Sets the face normal of the i'th face
 	 * @param i the index of the face
@@ -296,17 +446,25 @@ public class Mesh {
 		Log.d("NORMAL:", cp[0] + "," + cp[1] + "," + cp[2]);
 
 		// Setup for vertex normal construction;
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
-		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
+		_normals[firstV * 3]     += _faceNormals[i * 3];
+		_normals[firstV * 3 + 1] += _faceNormals[i * 3 + 1];
+		_normals[firstV * 3 + 2] += _faceNormals[i * 3 + 2];
+		
+		_normals[secondV * 3]     += _faceNormals[i * 3];
+		_normals[secondV * 3 + 1] += _faceNormals[i * 3 + 1];
+		_normals[secondV * 3 + 2] += _faceNormals[i * 3 + 2];
+		
+		_normals[thirdV * 3]     += _faceNormals[i * 3];
+		_normals[thirdV * 3 + 1] += _faceNormals[i * 3 + 1];
+		_normals[thirdV * 3 + 2] += _faceNormals[i * 3 + 2];
 
-		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
+		/*_vertices[secondV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
 		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
 		_vertices[secondV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
 
 		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
 		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
-		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];
+		_vertices[thirdV * this.VERTEX_ARRAY_SIZE + 5] += _faceNormals[i * 3 + 2];*/
 
 		// increment # of faces around the vertex
 		_surroundingFaces[firstV]++;
@@ -356,6 +514,11 @@ public class Mesh {
 	public FloatBuffer get_vb() {
 		return this._vb;
 	}
+	
+	public FloatBuffer get_nb() {
+		return this._nb;
+	}
+	
 	public ShortBuffer get_ib() {
 		return this._ib;
 	}
