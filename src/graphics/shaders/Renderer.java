@@ -32,9 +32,10 @@ class Renderer implements GLSurfaceView.Renderer {
     public float mAngleY;
 
 	private static final int FLOAT_SIZE_BYTES = 4;
-	private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 6 * FLOAT_SIZE_BYTES;
+	private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 8 * FLOAT_SIZE_BYTES;
 	private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
 	private static final int TRIANGLE_VERTICES_DATA_NOR_OFFSET = 3;
+	private static final int TRIANGLE_VERTICES_DATA_TEX_OFFSET = 5;
 
 	// shader constants
 	private final int GOURAUD_SHADER = 0;
@@ -70,6 +71,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	private float[] mMMatrix = new float[16];		// rotation
 	private float[] mVMatrix = new float[16]; 		// modelview
 	private float[] normalMatrix = new float[16]; 	// modelview normal
+	
+	// textures enabled?
+	private boolean enableTexture = false;
 	
 	// light parameters
 	private float[] lightPos;
@@ -241,16 +245,17 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
 		// Generate all the shader programs
-		// initialize shaders - PROBLEM!
+		// initialize shaders
 		try {
 			_shaders[0] = new Shader(vShaders[0], fShaders[0], mContext, false, 0);
-			_shaders[1] = new Shader(vShaders[this._currentShader], fShaders[this._currentShader], mContext, false, 0);
+			_shaders[1] = new Shader(vShaders[this._currentShader], fShaders[this._currentShader], mContext, false, 0); // temporary
 		} catch (Exception e) {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());
 		}
 		
 		//GLES20.glEnable   ( GLES20.GL_DEPTH_TEST );
-		GLES20.glDepthFunc( GLES20.GL_LEQUAL     );
+		GLES20.glClearDepthf(1.0f);
+		GLES20.glDepthFunc( GLES20.GL_LEQUAL );
 		GLES20.glDepthMask( true );
 		
 		// cull backface
@@ -280,12 +285,11 @@ class Renderer implements GLSurfaceView.Renderer {
 		
 		matShininess = 5.0f;
 		
-		// send to shaders
-		//GLES20.glUniform3fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
-		//GLES20.glUniform3fv(_shaders[this._currentShader].lightColorHandle, 1, lightColor, 0);
-		GLES20.glClearDepthf(1.0f);
-		//GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-		GLES20.glDepthFunc(GLES20.GL_EQUAL);//.enable(gl.DEPTH_TEST);
+		// setup textures for the object
+        _objects[this._currentObject].setupTexture(mContext);
+        
+        // Enable/disable texturing
+        this.toggleTexturing();
 		
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
@@ -311,9 +315,39 @@ class Renderer implements GLSurfaceView.Renderer {
 		_currentObject = object;
 	
 		// setup texture?
-		//_objects[_currentObject].setupTexture(mContext);
+        _objects[_currentObject].setupTexture(mContext);
+        
+        this.toggleTexturing();
 	}
 
+	/**
+     * Show texture or not?
+     */
+    public void setTexturing(boolean eT) {
+            enableTexture = eT;
+    
+            this.toggleTexturing();
+    }
+    
+    /**
+     * Enables or disables texturing
+     */
+    public void toggleTexturing() { // CRASH HERE
+            Object3D ob = _objects[this._currentObject];
+            if (ob.hasTexture()) {
+            		if (enableTexture) {
+	                    GLES20.glEnable(GLES20.GL_TEXTURE_2D);
+	                    GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+	                    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, ob.get_texID());
+            		}
+            		else
+            			GLES20.glDisable(GLES20.GL_TEXTURE_2D);
+            }
+            else {
+                    //GLES20.glDisable(GLES20.GL_TEXTURE_2D);
+            }
+    }
+	
 	/**
 	 * Scaling
 	 */

@@ -28,13 +28,9 @@ public class Mesh {
 	// Constants
 	private static final int FLOAT_SIZE_BYTES = 4;
 	private static final int SHORT_SIZE_BYTES = 2;
-	private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES;
-	private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
-	private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 3;
-
 	// the number of elements for each vertex
 	// [coordx, coordy, coordz, normalx, normaly, normalz....]
-	private final int VERTEX_ARRAY_SIZE = 6;
+	private final int VERTEX_ARRAY_SIZE = 8;
 	
 	// if tex coords exist
 	private final int VERTEX_TC_ARRAY_SIZE = 8;
@@ -329,21 +325,21 @@ public class Mesh {
 			
 			
 			// create the vertex buffer
-			_vertices = new float[numVertices * 3];
+			float[] _v = new float[numVertices * 3];
 			// create the normal buffer
-			_normals = new float[numVertices * 3];
+			float[] _n = new float[numVertices * 3];
 			// texcoord
 			_texCoords = new float[numTexCoords * 2];
 			
 			// copy over data - INEFFICIENT [SHOULD BE A BETTER WAY]
 			for(int i = 0; i < numVertices; i++) {
-				_vertices[i * 3] 	 = vs.get(i * 3);
-				_vertices[i * 3 + 1] = vs.get(i * 3 + 1);
-				_vertices[i * 3 + 2] = vs.get(i * 3 + 2);
+				_v[i * 3] 	 = vs.get(i * 3);
+				_v[i * 3 + 1] = vs.get(i * 3 + 1);
+				_v[i * 3 + 2] = vs.get(i * 3 + 2);
 				
-				_normals[i * 3 ] 	= ns.get(i * 3);
-				_normals[i * 3 + 1] = ns.get(i * 3 + 1);
-				_normals[i * 3 + 2] = ns.get(i * 3 + 2);
+				_n[i * 3 ] 	= ns.get(i * 3);
+				_n[i * 3 + 1] = ns.get(i * 3 + 1);
+				_n[i * 3 + 2] = ns.get(i * 3 + 2);
 				
 				_texCoords[i * 3 ] 	  = tc.get(i * 3);
 				_texCoords[i * 3 + 1] = tc.get(i * 3 + 1);
@@ -353,8 +349,9 @@ public class Mesh {
 			// now read all the faces
 			String fFace, sFace, tFace;
 			ArrayList<Float> mainBuffer = new ArrayList<Float>(numVertices * 6);
-			ArrayList<Integer> indicesB = new ArrayList<Integer>(100);
+			ArrayList<Short> indicesB = new ArrayList<Short>(numVertices * 3);
 			StringTokenizer lt, ft; // the face tokenizer
+			int numFaces = 0;
 			if (type.equals("f")) {
 				while (type.equals("f")) {
 					// get all the faces
@@ -374,24 +371,45 @@ public class Mesh {
 						int vertN = Integer.parseInt(ft.nextToken()) - 1;
 						
 						// Add to the index buffer
-						indicesB.add(vert);
+						indicesB.add((short)vert);
 						
 						// Add all the vertex info
-						mainBuffer.add(_vertices[vert * 3]); 	// x
-						mainBuffer.add(_vertices[vert * 3 + 1]);// y
-						mainBuffer.add(_vertices[vert * 3 + 2]);// z
+						mainBuffer.add(_v[vert * 3]); 	 // x
+						mainBuffer.add(_v[vert * 3 + 1]);// y
+						mainBuffer.add(_v[vert * 3 + 2]);// z
 						// add the normal info
-						mainBuffer.add(_normals[vert * 3]); 	// x
-						mainBuffer.add(_normals[vert * 3 + 1]); // y
-						mainBuffer.add(_normals[vert * 3 + 2]); // z
+						mainBuffer.add(_n[vertN * 3]); 	  // x
+						mainBuffer.add(_n[vertN * 3 + 1]); // y
+						mainBuffer.add(_n[vertN * 3 + 2]); // z
+						// add the tex coord info
+						mainBuffer.add(_texCoords[texc * 3]); 	  // u
+						mainBuffer.add(_texCoords[texc * 3 + 1]); // v
+						
 					}
 					
 					// next face
 					str = in.readLine();
 					t = new StringTokenizer(str);
-					
+					numFaces++;
 					type = t.nextToken();
 				}
+			}
+			
+			// copy over the mainbuffer to the vertex + normal array
+			for(int i = 0; i < numFaces; i++) {
+				_vertices[i * this.VERTEX_ARRAY_SIZE]     = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE);     // pos x
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 1] = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE + 1); //     y
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 2] = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE + 2); //     z
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 3] = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE + 3); // nor x
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 4] = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE + 4); //     y
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 5] = mainBuffer.get(i * this.VERTEX_ARRAY_SIZE + 5); //     z
+			}
+			
+			// copy over indices buffer
+			for(int i = 0; i < indicesB.size(); i++) {
+				_indices[i * 3]     = indicesB.get(i * 3);
+				_indices[i * 3 + 1] = indicesB.get(i * 3 + 1);
+				_indices[i * 3 + 2] = indicesB.get(i * 3 + 2);
 			}
 			
 			return 1;

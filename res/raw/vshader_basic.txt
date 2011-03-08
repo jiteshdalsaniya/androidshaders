@@ -1,6 +1,7 @@
 uniform mat4 uMVPMatrix;
 uniform mat4 normalMatrix;
 uniform float hasTexture;
+uniform vec2 textureCoord;
 
 // eye pos
 uniform vec3 eyePos;
