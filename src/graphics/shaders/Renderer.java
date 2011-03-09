@@ -228,8 +228,10 @@ class Renderer implements GLSurfaceView.Renderer {
 			int[] texIDs = ob.get_texID(); 
 			
 			//GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);//_texIDs[0]);
-			for(int i = 0; i < _texIDs.length; i++)
+			for(int i = 0; i < _texIDs.length; i++) {
 				GLES20.glActiveTexture(this.texConstants[i]);
+				Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
+			}
 		}
 
 		// enable texturing?
@@ -305,11 +307,9 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		matShininess = 5.0f;
 
-		// setup textures for the object
-		//_objects[this._currentObject].setupTexture(mContext);
-
-		// Enable/disable texturing
-		setupTextures();
+		// setup textures for all objects
+		for(int i = 0; i < _objects.length; i++)
+			setupTextures(_objects[i]);
 
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
@@ -336,7 +336,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// setup texture?
 		//_objects[_currentObject].setupTexture(mContext);
-		setupTextures();
+		//setupTextures(object);
 		
 		//this.toggleTexturing();
 	}
@@ -357,7 +357,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Object3D ob = _objects[this._currentObject];
 		if (ob.hasTexture()) {
 			if (enableTexture) {
-				this.setupTextures();
+				this.setupTextures(ob);
 			}
 			//else // add a  toast here!
 			//GLES20.glDisable(GLES20.GL_TEXTURE_2D);
@@ -375,8 +375,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	/**
 	 * Sets up texturing for the object
 	 */
-	private void setupTextures() {
-		Object3D ob = _objects[this._currentObject];
+	private void setupTextures(Object3D ob) {
 		// create new texture ids if object has them
 		if (ob.hasTexture()) {
 			// number of textures
@@ -390,9 +389,9 @@ class Renderer implements GLSurfaceView.Renderer {
 			GLES20.glGenTextures(texIDs.length, textures, 0);
 			
 			for(int i = 0; i < texIDs.length; i++) {
-				_texIDs[i] = textures[i];
+				texIDs[i] = textures[i];
 				
-				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texIDs[i]);
+				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
 
 				// parameters
 				GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,

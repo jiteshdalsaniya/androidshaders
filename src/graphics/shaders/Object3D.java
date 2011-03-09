@@ -80,51 +80,42 @@ public class Object3D {
 		if (!hasTexture)
 			return;
 		
-		int[] texIDs = this.get_texID();
-		int[] textures = new int[texIDs.length];
-		_texIDs = new int[texIDs.length];
-		// texture file ids
-		int[] texFiles = this.getTexFile();
+		// create new texture ids
+		/*int[] textures = new int[1];
+        GLES20.glGenTextures(1, textures, 0);
 
-		Log.d("TEXFILES LENGTH: ", texFiles.length + "");
-		GLES20.glGenTextures(texIDs.length, textures, 0);
-		
-		for(int i = 0; i < texIDs.length; i++) {
-			_texIDs[i] = textures[i];
-			
-			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texIDs[i]);
+        _texID = textures[0];
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texID);
 
-			// parameters
-			GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
-					GLES20.GL_NEAREST);
-			GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
-					GLES20.GL_TEXTURE_MAG_FILTER,
-					GLES20.GL_LINEAR);
+        // parameters
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
+                GLES20.GL_NEAREST);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+                GLES20.GL_TEXTURE_MAG_FILTER,
+                GLES20.GL_LINEAR);
 
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
-					GLES20.GL_REPEAT);
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
-					GLES20.GL_REPEAT);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
+                GLES20.GL_REPEAT);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
+                GLES20.GL_REPEAT);
 
-			InputStream is = context.getResources()
-			.openRawResource(texFiles[i]);
-			Bitmap bitmap;
-			try {
-				bitmap = BitmapFactory.decodeStream(is);
-			} finally {
-				try {
-					is.close();
-				} catch(IOException e) {
-					// Ignore.
-				}
-			}
+        InputStream is = context.getResources()
+            .openRawResource(texFile);
+        Bitmap bitmap;
+        try {
+            bitmap = BitmapFactory.decodeStream(is);
+        } finally {
+            try {
+                is.close();
+            } catch(IOException e) {
+                // Ignore.
+            }
+        }
 
-			// create it 
-			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-			bitmap.recycle();
-			
-			Log.d("ATTACHING TEXTURES: ", "Attached " + i);
-		}
+        // create it 
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        bitmap.recycle();
+        Log.d("SETUP IMAGE", _texID + "");*/
 	}
 
 	
