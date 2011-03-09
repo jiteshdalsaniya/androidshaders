@@ -148,9 +148,9 @@ public class Shader {
         _program = GLES20.glCreateProgram();
         if (_program != 0) {
             GLES20.glAttachShader(_program, _vertexShader);
-            checkGlError("glAttachShader");
+            checkGlError("glAttachShader VS");
             GLES20.glAttachShader(_program, _pixelShader);
-            checkGlError("glAttachShader");
+            checkGlError("glAttachShader PS");
             GLES20.glLinkProgram(_program);
             int[] linkStatus = new int[1];
             GLES20.glGetProgramiv(_program, GLES20.GL_LINK_STATUS, linkStatus, 0);
@@ -204,6 +204,7 @@ public class Shader {
 	        if (maTextureHandle == -1) {
 	            throw new RuntimeException("Could not get attrib location for aTextureCoord");
 	        }
+	        GLES20.glEnableVertexAttribArray(this.maTextureHandle);
         }
 
         // modelview/projection matrix

@@ -1,27 +1,25 @@
 package graphics.shaders;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.util.StringTokenizer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.os.SystemClock;
 import android.util.Log;
+import android.widget.Toast;
 
 class Renderer implements GLSurfaceView.Renderer {
 	/******************************
@@ -29,13 +27,13 @@ class Renderer implements GLSurfaceView.Renderer {
 	 ******************************/
 	// rotation 
 	public float mAngleX;
-    public float mAngleY;
+	public float mAngleY;
 
 	private static final int FLOAT_SIZE_BYTES = 4;
 	private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 8 * FLOAT_SIZE_BYTES;
 	private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
 	private static final int TRIANGLE_VERTICES_DATA_NOR_OFFSET = 3;
-	private static final int TRIANGLE_VERTICES_DATA_TEX_OFFSET = 5;
+	private static final int TRIANGLE_VERTICES_DATA_TEX_OFFSET = 6;
 
 	// shader constants
 	private final int GOURAUD_SHADER = 0;
@@ -71,30 +69,33 @@ class Renderer implements GLSurfaceView.Renderer {
 	private float[] mMMatrix = new float[16];		// rotation
 	private float[] mVMatrix = new float[16]; 		// modelview
 	private float[] normalMatrix = new float[16]; 	// modelview normal
-	
+
 	// textures enabled?
-	private boolean enableTexture = false;
+	private boolean enableTexture = true;
+	private int[] _texIDs;
+	// texture ids - 3 textures
+	private int[] texConstants = {GLES20.GL_TEXTURE0, GLES20.GL_TEXTURE1, GLES20.GL_TEXTURE2};
 	
 	// light parameters
 	private float[] lightPos;
 	private float[] lightColor;
 	private float[] lightAmbient;
 	private float[] lightDiffuse;
-	
+
 	// material properties
 	private float[] matAmbient;
 	private float[] matDiffuse;
 	private float[] matSpecular;
 	private float matShininess;
-	
+
 	// eye pos
 	private float[] eyePos = {-5.0f, 0.0f, 0.0f};
-	
+
 	// scaling
 	float scaleX = 1.0f;
 	float scaleY = 1.0f;
 	float scaleZ = 1.0f;
-	
+
 	private Context mContext;
 	private static String TAG = "GLES20TriangleRenderer";
 
@@ -116,13 +117,14 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Create some objects...
 		// Octahedron - WORKS!
 		try {
+			int[] textures = {R.raw.diffuse};
 			_objects[0] = new Object3D(R.raw.octahedron, false, context);
-			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
-			_objects[2] = new Object3D(R.raw.cube, false, context);
+			_objects[1] = new Object3D(textures, R.raw.texturedcube, true, context);
+			_objects[2] = new Object3D(textures, R.raw.cube, true, context);
 		} catch (Exception e) {
 			showAlert("" + e.getMessage());
 		}
-		
+
 		// set current object and shader
 		_currentObject = this.OCTAHEDRON;
 		_currentShader = this.GOURAUD_SHADER;
@@ -147,21 +149,21 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUseProgram(shader.get_program());
 		checkGlError("glUseProgram");
 
-		// GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+		//GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 		// GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);
-	
+
 		// MODELVIEW MATRIX
 		long time = SystemClock.uptimeMillis() % 4000L;
 		float angle = 0.090f * ((int) time);
-		
+
 		// scaling
 		Matrix.setIdentityM(mScaleMatrix, 0);
 		Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
-		
+
 		// Rotation along x
 		Matrix.setRotateM(mRotXMatrix, 0, this.mAngleY, -1.0f, 0.0f, 0.0f);
 		Matrix.setRotateM(mRotYMatrix, 0, this.mAngleX, 0.0f, 1.0f, 0.0f);
-		
+
 		float tempMatrix[] = new float[16]; 
 		Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
 		Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
@@ -169,7 +171,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		//Matrix.scaleM(mMMatrix, 0, 100.0f, 100.0f, 100.0f);
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
-		
+
 		// send to the shader
 		GLES20.glUniformMatrix4fv(shader.muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
@@ -177,53 +179,71 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Invert + transpose of mvpmatrix
 		Matrix.invertM(normalMatrix, 0, mMVPMatrix, 0);
 		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
-		
+
 		// send to the shader
 		GLES20.glUniformMatrix4fv(shader.normalMatrixHandle, 1, false, mMVPMatrix, 0);
-		
+
 		// lighting variables
 		// send to shaders
 		GLES20.glUniform4fv(_shaders[this._currentShader].lightPosHandle, 1, lightPos, 0);
 		GLES20.glUniform4fv(_shaders[this._currentShader].lightColorHandle, 1, lightColor, 0);
-	
+
 		// material 
 		GLES20.glUniform4fv(_shaders[this._currentShader].matAmbientHandle, 1, matAmbient, 0);
 		GLES20.glUniform4fv(_shaders[this._currentShader].matDiffuseHandle, 1, matDiffuse, 0);
 		GLES20.glUniform4fv(_shaders[this._currentShader].matSpecularHandle, 1, matSpecular, 0);
 		GLES20.glUniform1f(_shaders[this._currentShader].matShininessHandle, matShininess);
-		
+
 		// eyepos
 		GLES20.glUniform3fv(_shaders[this._currentShader].eyeHandle, 1, eyePos, 0);
-		
+
 		/*** DRAWING OBJECT **/
 		// Get buffers from mesh
 		Object3D ob = this._objects[this._currentObject];
 		Mesh mesh = ob.getMesh();
 		FloatBuffer _vb = mesh.get_vb();
 		ShortBuffer _ib = mesh.get_ib();
-		
+
 		short[] _indices = mesh.get_indices();
-		
+
 		// Textures
-		// has texture?
-		GLES20.glUniform1f(shader.hasTextureHandle, ob.hasTexture() ? 1 : 0);
-	
+
 		// the vertex coordinates
 		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
 		GLES20.glVertexAttribPointer(shader.maPositionHandle, 3, GLES20.GL_FLOAT, false,
-				 TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
 		GLES20.glEnableVertexAttribArray(shader.maPositionHandle);
-		 
+
 		// the normal info
 		_vb.position(TRIANGLE_VERTICES_DATA_NOR_OFFSET);
 		GLES20.glVertexAttribPointer(shader.maNormalHandle, 3, GLES20.GL_FLOAT, false,
-				 TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
 		GLES20.glEnableVertexAttribArray(shader.maNormalHandle);
-		
+
+		// Texture info
+
+		// bind texture
+		if (ob.hasTexture() && enableTexture) {
+			// number of textures
+			int[] texIDs = ob.get_texID(); 
+			
+			//GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);//_texIDs[0]);
+			for(int i = 0; i < _texIDs.length; i++)
+				GLES20.glActiveTexture(this.texConstants[i]);
+		}
+
+		// enable texturing?
+		GLES20.glUniform1f(shader.hasTextureHandle, ob.hasTexture() && enableTexture ? 2.0f : 0.0f);
+
+		_vb.position(TRIANGLE_VERTICES_DATA_TEX_OFFSET);
+		GLES20.glVertexAttribPointer(shader.maTextureHandle, 2, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+		GLES20.glEnableVertexAttribArray(shader.maTextureHandle);
+
 		// Draw with indices
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
 		checkGlError("glDrawElements");
-        
+
 		/** END DRAWING OBJECT ***/
 	}
 
@@ -252,45 +272,45 @@ class Renderer implements GLSurfaceView.Renderer {
 		} catch (Exception e) {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());
 		}
-		
+
 		//GLES20.glEnable   ( GLES20.GL_DEPTH_TEST );
 		GLES20.glClearDepthf(1.0f);
 		GLES20.glDepthFunc( GLES20.GL_LEQUAL );
 		GLES20.glDepthMask( true );
-		
+
 		// cull backface
 		GLES20.glEnable( GLES20.GL_CULL_FACE );
 		GLES20.glCullFace(GLES20.GL_BACK); // Should be culling GL_BACK though - fix meshes?
-		
+
 		// light variables
 		float[] lightP = {3.0f, 3.0f, -3.0f, 1};
 		this.lightPos = lightP;
-		
+
 		float[] lightC = {1.0f, 0.5f, 0.5f};
 		this.lightColor = lightC;
-		
+
 		//float[] lA = {
 		//private float[] lightAmbient;
 		//private float[] lightDiffuse;
-		
+
 		// material properties
 		float[] mA = {1.0f, 0.5f, 0.5f, 1.0f};
 		matAmbient = mA;
-		
+
 		float[] mD = {1.0f, 0.5f, 0.5f, 1.0f};
 		matDiffuse = mD;
-		
+
 		float[] mS =  {1.0f, 1.0f, 1.0f, 1.0f};
 		matSpecular = mS;
-		
+
 		matShininess = 5.0f;
-		
+
 		// setup textures for the object
-        _objects[this._currentObject].setupTexture(mContext);
-        
-        // Enable/disable texturing
-        this.toggleTexturing();
-		
+		//_objects[this._currentObject].setupTexture(mContext);
+
+		// Enable/disable texturing
+		setupTextures();
+
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
 	}
@@ -313,41 +333,101 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	public void setObject(int object) {
 		_currentObject = object;
-	
+
 		// setup texture?
-        _objects[_currentObject].setupTexture(mContext);
-        
-        this.toggleTexturing();
+		//_objects[_currentObject].setupTexture(mContext);
+		setupTextures();
+		
+		//this.toggleTexturing();
 	}
 
 	/**
-     * Show texture or not?
-     */
-    public void setTexturing(boolean eT) {
-            enableTexture = eT;
-    
-            this.toggleTexturing();
-    }
-    
-    /**
-     * Enables or disables texturing
-     */
-    public void toggleTexturing() { // CRASH HERE
-            Object3D ob = _objects[this._currentObject];
-            if (ob.hasTexture()) {
-            		if (enableTexture) {
-	                    GLES20.glEnable(GLES20.GL_TEXTURE_2D);
-	                    GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-	                    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, ob.get_texID());
-            		}
-            		else
-            			GLES20.glDisable(GLES20.GL_TEXTURE_2D);
-            }
-            else {
-                    //GLES20.glDisable(GLES20.GL_TEXTURE_2D);
-            }
-    }
-	
+	 * Show texture or not?
+	 */
+	public void flipTexturing() {
+		enableTexture = !enableTexture;
+
+		this.toggleTexturing();
+	}
+
+	/**
+	 * Enables or disables texturing
+	 */
+	public void toggleTexturing() { // CRASH HERE
+		Object3D ob = _objects[this._currentObject];
+		if (ob.hasTexture()) {
+			if (enableTexture) {
+				this.setupTextures();
+			}
+			//else // add a  toast here!
+			//GLES20.glDisable(GLES20.GL_TEXTURE_2D);
+		}
+		else {
+			// Create a toast notification signifying that there is no texture associated with this object
+			CharSequence text = "Hello toast!";
+			int duration = Toast.LENGTH_SHORT;
+
+			//Toast toast = Toast.makeText(mContext, text, duration);
+			//toast.show();
+		}
+	}
+
+	/**
+	 * Sets up texturing for the object
+	 */
+	private void setupTextures() {
+		Object3D ob = _objects[this._currentObject];
+		// create new texture ids if object has them
+		if (ob.hasTexture()) {
+			// number of textures
+			int[] texIDs = ob.get_texID();
+			int[] textures = new int[texIDs.length];
+			_texIDs = new int[texIDs.length];
+			// texture file ids
+			int[] texFiles = ob.getTexFile();
+
+			Log.d("TEXFILES LENGTH: ", texFiles.length + "");
+			GLES20.glGenTextures(texIDs.length, textures, 0);
+			
+			for(int i = 0; i < texIDs.length; i++) {
+				_texIDs[i] = textures[i];
+				
+				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texIDs[i]);
+
+				// parameters
+				GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
+						GLES20.GL_NEAREST);
+				GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+						GLES20.GL_TEXTURE_MAG_FILTER,
+						GLES20.GL_LINEAR);
+
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
+						GLES20.GL_REPEAT);
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
+						GLES20.GL_REPEAT);
+
+				InputStream is = mContext.getResources()
+				.openRawResource(texFiles[i]);
+				Bitmap bitmap;
+				try {
+					bitmap = BitmapFactory.decodeStream(is);
+				} finally {
+					try {
+						is.close();
+					} catch(IOException e) {
+						// Ignore.
+					}
+				}
+
+				// create it 
+				GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+				bitmap.recycle();
+				
+				Log.d("ATTACHING TEXTURES: ", "Attached " + i);
+			}
+		}
+	}
+
 	/**
 	 * Scaling
 	 */
@@ -356,20 +436,20 @@ class Renderer implements GLSurfaceView.Renderer {
 		scaleY += 0.01f;
 		scaleZ += 0.01f;
 	}
-	
+
 	public void decreaseScale() {
 		scaleX -= 0.01f;
 		scaleY -= 0.01f;
 		scaleZ -= 0.01f;
-		
+
 	}
-	
+
 	public void defaultScale() {
 		scaleX = 1f;
 		scaleY = 1f;
 		scaleZ = 1f;
 	}
-	
+
 	// debugging opengl
 	private void checkGlError(String op) {
 		int error;
@@ -400,10 +480,10 @@ class Renderer implements GLSurfaceView.Renderer {
 		alert.show();
 	}
 
-	
+
 	/******************* UNNEEDED CODE *************/
-	
-	
+
+
 	/*
 	 * Create our texture(s). This has to be done each time the
 	 * surface is created.
@@ -445,7 +525,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
     GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
     bitmap.recycle();*/
-	
+
 	// TEST DATA
 	/* 
 	 * private final float[] mTriangleVerticesData = {

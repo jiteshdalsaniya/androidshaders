@@ -7,14 +7,13 @@ package graphics.shaders;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
+import android.util.Log;
 
 public class Object3D {
 	/*************************
@@ -35,8 +34,8 @@ public class Object3D {
 	
 	// texture
 	private boolean hasTexture;
-	private int texFile;
-	private int _texID;
+	private int[] texFiles;
+	private int[] _texIDs;
 	
 	// lighting
 	
@@ -46,11 +45,11 @@ public class Object3D {
 	 * CONSTRUCTOR(S)
 	 **************************/
 	public Object3D(int meshID, boolean hasTexture, Context context) {
-		this(-1, meshID, hasTexture, context);
+		this(new int[0], meshID, hasTexture, context);
 	}
 	
-	public Object3D(int texFile, int meshID, boolean hasTexture, Context context) {
-		this.texFile = texFile;
+	public Object3D(int[] texFile, int meshID, boolean hasTexture, Context context) {
+		this.texFiles = texFile;
 		this.meshID = meshID;
 		this.hasTexture = hasTexture;
 		
@@ -58,7 +57,8 @@ public class Object3D {
 		mesh = new Mesh(meshID, context);
 		
 		// texture
-		//setupTexture();
+		_texIDs = new int[texFiles.length];
+		setupTexture(context);
 	} 
 	
 	/**************************
@@ -80,41 +80,51 @@ public class Object3D {
 		if (!hasTexture)
 			return;
 		
-		// create new texture ids
-		int[] textures = new int[1];
-        GLES20.glGenTextures(1, textures, 0);
+		int[] texIDs = this.get_texID();
+		int[] textures = new int[texIDs.length];
+		_texIDs = new int[texIDs.length];
+		// texture file ids
+		int[] texFiles = this.getTexFile();
 
-        _texID = textures[0];
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texID);
+		Log.d("TEXFILES LENGTH: ", texFiles.length + "");
+		GLES20.glGenTextures(texIDs.length, textures, 0);
+		
+		for(int i = 0; i < texIDs.length; i++) {
+			_texIDs[i] = textures[i];
+			
+			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, _texIDs[i]);
 
-        // parameters
-        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
-                GLES20.GL_NEAREST);
-        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
-                GLES20.GL_TEXTURE_MAG_FILTER,
-                GLES20.GL_LINEAR);
+			// parameters
+			GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
+					GLES20.GL_NEAREST);
+			GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
+					GLES20.GL_TEXTURE_MAG_FILTER,
+					GLES20.GL_LINEAR);
 
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
-                GLES20.GL_REPEAT);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
-                GLES20.GL_REPEAT);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
+					GLES20.GL_REPEAT);
+			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
+					GLES20.GL_REPEAT);
 
-        InputStream is = context.getResources()
-            .openRawResource(texFile);
-        Bitmap bitmap;
-        try {
-            bitmap = BitmapFactory.decodeStream(is);
-        } finally {
-            try {
-                is.close();
-            } catch(IOException e) {
-                // Ignore.
-            }
-        }
+			InputStream is = context.getResources()
+			.openRawResource(texFiles[i]);
+			Bitmap bitmap;
+			try {
+				bitmap = BitmapFactory.decodeStream(is);
+			} finally {
+				try {
+					is.close();
+				} catch(IOException e) {
+					// Ignore.
+				}
+			}
 
-        // create it 
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-        bitmap.recycle();
+			// create it 
+			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+			bitmap.recycle();
+			
+			Log.d("ATTACHING TEXTURES: ", "Attached " + i);
+		}
 	}
 
 	
@@ -147,20 +157,20 @@ public class Object3D {
 		this.hasTexture = hasTexture;
 	}
 
-	public int getTexFile() {
-		return texFile;
+	public int[] getTexFile() {
+		return texFiles;
 	}
 
-	public void setTexFile(int texFile) {
-		this.texFile = texFile;
+	public void setTexFile(int[] texFile) {
+		this.texFiles = texFile;
 	}
 
-	public int get_texID() {
-		return _texID;
+	public int[] get_texID() {
+		return _texIDs;
 	}
 
-	public void set_texID(int _texid) {
-		_texID = _texid;
+	public void set_texID(int[] _texid) {
+		_texIDs = _texid;
 	}
 	
 }

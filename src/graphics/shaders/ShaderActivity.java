@@ -134,6 +134,9 @@ public class ShaderActivity extends Activity {
 		case R.id.tetrahedron:		// Tetrahedron
 			renderer.setObject(this.TETRAHEDRON);
 			return true;
+		case R.id.texture:			// Enable/disable texturing
+			renderer.flipTexturing();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
