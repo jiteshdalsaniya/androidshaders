@@ -1,5 +1,20 @@
-/*
- * Copied from APIDemos
+/**
+ * OpenGL ES 2.0 examples for Android
+ * ----------------------------------
+  
+   The purpose was to create a simple framework for working with 
+   OpenGL ES 2.0 in Android. Features:
+  
+   1) Loads triangular meshes in these formats:
+ 	- (.OFF): Vertex positions + normals
+ 	- (.OBJ): Vertex positions, normals and texture coordinates
+  
+   2) Shader functionality. There are three shaders:
+    - Gouraud Shading (Per-vertex lighting)
+    - Phong Shading (Per-pixel lighting)
+    - Normal Mapping
+    
+    The code was constructed by using GLES20TriangleRenderer.java from the Android SDK as a base.
  */
 
 package graphics.shaders;

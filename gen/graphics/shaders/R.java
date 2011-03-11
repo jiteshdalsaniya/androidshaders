@@ -37,12 +37,14 @@ public final class R {
         public static final int diffusenormalmap=0x7f040004;
         public static final int gouraud_ps=0x7f040005;
         public static final int gouraud_vs=0x7f040006;
-        public static final int octahedron=0x7f040007;
-        public static final int phong_ps=0x7f040008;
-        public static final int phong_vs=0x7f040009;
-        public static final int robot=0x7f04000a;
-        public static final int tetrahedron=0x7f04000b;
-        public static final int texturedcube=0x7f04000c;
+        public static final int normalmap_ps=0x7f040007;
+        public static final int normalmap_vs=0x7f040008;
+        public static final int octahedron=0x7f040009;
+        public static final int phong_ps=0x7f04000a;
+        public static final int phong_vs=0x7f04000b;
+        public static final int robot=0x7f04000c;
+        public static final int tetrahedron=0x7f04000d;
+        public static final int texturedcube=0x7f04000e;
     }
     public static final class string {
         public static final int app_name=0x7f050004;

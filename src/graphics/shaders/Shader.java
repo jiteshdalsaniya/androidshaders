@@ -59,7 +59,7 @@ public class Shader {
 		// read the files
 		try {
 			// Read the file from the resource
-			Log.d("loadFile", "Trying to read vs");
+			//Log.d("loadFile", "Trying to read vs");
 			// Read VS first
 			InputStream inputStream = context.getResources().openRawResource(vID);
 			// setup Bufferedreader
@@ -75,7 +75,7 @@ public class Shader {
 		    //Log.d("StringBufferVS", vs.toString());
 		    
 		    // Now read FS
-		    Log.d("loadFile", "Trying to read vs");
+		    //Log.d("loadFile", "Trying to read vs");
 			// Read VS first
 			inputStream = context.getResources().openRawResource(fID);
 			// setup Bufferedreader
@@ -115,23 +115,10 @@ public class Shader {
 		// create the program
 		int create = createProgram();
 		
-		// textures
+		// texture variables
 		this.hasTextures = hasTextures;
 		this.numTextures = numTextures;
-		
-		// setup handles
-		//setupHandles();
-		//load();
 	}
-	
-	// Load
-	public void load() {
-		Log.d("CALLING LOAD: ", toString());
-		//int create = createProgram();
-		// setup the handles
-		this.setupHandles();
-	}
-	
 	
 	/**
 	 * Creates a shader program.
@@ -291,24 +278,6 @@ public class Shader {
 		GLES20.glEnableVertexAttribArray(this.matDiffuseHandle);
 		GLES20.glEnableVertexAttribArray(this.matSpecularHandle);
 		GLES20.glEnableVertexAttribArray(this.matShininessHandle);
-	}
-	
-	// Disables attribarrays
-	public void disableArrays() {
-		GLES20.glDisableVertexAttribArray(this.maPositionHandle);
-		GLES20.glDisableVertexAttribArray(this.eyeHandle);
-		GLES20.glDisableVertexAttribArray(this.maNormalHandle);
-		GLES20.glDisableVertexAttribArray(this.hasTextureHandle);
-		GLES20.glDisableVertexAttribArray(this.muMVPMatrixHandle);
-		GLES20.glDisableVertexAttribArray(this.normalMatrixHandle);
-		
-		GLES20.glDisableVertexAttribArray(this.lightColorHandle);
-		GLES20.glDisableVertexAttribArray(this.lightPosHandle);
-		
-		GLES20.glDisableVertexAttribArray(this.matAmbientHandle);
-		GLES20.glDisableVertexAttribArray(this.matDiffuseHandle);
-		GLES20.glDisableVertexAttribArray(this.matSpecularHandle);
-		GLES20.glDisableVertexAttribArray(this.matShininessHandle);
 	}
 	
 	/**

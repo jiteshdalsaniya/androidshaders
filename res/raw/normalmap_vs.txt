@@ -1,4 +1,4 @@
-// Vertex shader Phong Shading - Per-pixel lighting
+// Vertex shader Normal map
 
 uniform mat4 uMVPMatrix;
 uniform mat4 normalMatrix;

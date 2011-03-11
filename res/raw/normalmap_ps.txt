@@ -1,10 +1,10 @@
-// Frag shader Phong Shading - Per-pixel lighting
+// Frag shader Normal Map
 
 precision mediump float;
 
 // texture variables
 uniform sampler2D texture1; // color texture
-
+uniform sampler2D texture2; // normal map texture
 varying float tex;
 varying vec2 tCoord;
 

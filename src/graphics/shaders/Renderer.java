@@ -1,3 +1,7 @@
+/** 
+ * The OpenGL renderer
+ */
+
 package graphics.shaders;
 
 import java.io.IOException;
@@ -73,8 +77,6 @@ class Renderer implements GLSurfaceView.Renderer {
 	// textures enabled?
 	private boolean enableTexture = true;
 	private int[] _texIDs;
-	// texture ids - 3 textures
-	private int[] texConstants = {GLES20.GL_TEXTURE0, GLES20.GL_TEXTURE1, GLES20.GL_TEXTURE2};
 	
 	// light parameters
 	private float[] lightPos;
@@ -114,18 +116,21 @@ class Renderer implements GLSurfaceView.Renderer {
 		vShaders[0] = R.raw.gouraud_vs;
 		fShaders[0] = R.raw.gouraud_ps;
 
+		// phong shading
 		vShaders[1] = R.raw.phong_vs;
 		fShaders[1] = R.raw.phong_ps;
 
+		// normal mapping
+		vShaders[2] = R.raw.normalmap_vs;
+		fShaders[2] = R.raw.normalmap_ps;
 		
-		
-		// Create some objects...
-		// Octahedron - WORKS!
+		// Create some objects - pass in the textures, the meshes
 		try {
-			int[] textures = {R.raw.diffuse};
+			int[] simpleTextures = {R.raw.diffuse};
+			int[] normalMapTextures = {R.raw.diffuse, R.raw.diffusenormalmap};
 			_objects[0] = new Object3D(R.raw.octahedron, false, context);
 			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
-			_objects[2] = new Object3D(textures, R.raw.texturedcube, true, context);
+			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
 		} catch (Exception e) {
 			showAlert("" + e.getMessage());
 		}
@@ -245,9 +250,12 @@ class Renderer implements GLSurfaceView.Renderer {
 			
 			//GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);//_texIDs[0]);
 			for(int i = 0; i < _texIDs.length; i++) {
-				GLES20.glActiveTexture(this.texConstants[i]);
+				//if (_currentShader != 2 && i == 1)
+				//	continue;
+				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
 				Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
-				
+				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
+				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
 			}
 		}
 
@@ -293,7 +301,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			_shaders[1] = new Shader(vShaders[1], fShaders[1], mContext, false, 0); // phong
 			//_shaders[1].load();
 			Log.d("SHADER 1 DONE!", "SHADER 1");
-			_shaders[2] = new Shader(vShaders[1], fShaders[1], mContext, false, 0); // temporary
+			_shaders[2] = new Shader(vShaders[2], fShaders[2], mContext, false, 0); // temporary
 			Log.d("SHADER 2 DONE!", "SHADER 2");
 		} catch (Exception e) {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());

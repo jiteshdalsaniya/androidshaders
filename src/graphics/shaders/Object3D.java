@@ -24,9 +24,6 @@ public class Object3D {
 	
 	// Constants
 	private static final int FLOAT_SIZE_BYTES = 4;
-    private static final int TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 3 * FLOAT_SIZE_BYTES;
-    private static final int TRIANGLE_VERTICES_DATA_POS_OFFSET = 0;
-    private static final int TRIANGLE_VERTICES_DATA_UV_OFFSET = 3;
 	
     // Mesh
 	Mesh mesh; 						// The mesh of triangles
