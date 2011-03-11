@@ -34,7 +34,6 @@ public class Shader {
     
 	// The shaders
 	private String _vertexS, _fragmentS;
-	private int _vsID, _fsID; // the ids for the files to be read
 	
 	// does it have textures?
 	private boolean hasTextures;
@@ -120,6 +119,15 @@ public class Shader {
 		this.hasTextures = hasTextures;
 		this.numTextures = numTextures;
 		
+		// setup handles
+		//setupHandles();
+		//load();
+	}
+	
+	// Load
+	public void load() {
+		Log.d("CALLING LOAD: ", toString());
+		//int create = createProgram();
 		// setup the handles
 		this.setupHandles();
 	}
@@ -148,9 +156,9 @@ public class Shader {
         _program = GLES20.glCreateProgram();
         if (_program != 0) {
             GLES20.glAttachShader(_program, _vertexShader);
-            checkGlError("glAttachShader VS");
+            //checkGlError("glAttachShader VS " + this.toString());
             GLES20.glAttachShader(_program, _pixelShader);
-            checkGlError("glAttachShader PS");
+            //checkGlError("glAttachShader PS");
             GLES20.glLinkProgram(_program);
             int[] linkStatus = new int[1];
             GLES20.glGetProgramiv(_program, GLES20.GL_LINK_STATUS, linkStatus, 0);
@@ -175,14 +183,15 @@ public class Shader {
 		 // The handles
         // position
         maPositionHandle = GLES20.glGetAttribLocation(_program, "aPosition");
+        Log.d("ATTRIB LOCATION POSITION: ", maPositionHandle + "");
         checkGlError("glGetAttribLocation aPosition");
         if (maPositionHandle == -1) {
             throw new RuntimeException("Could not get attrib location for aPosition");
         }
         
         // normal
-        // position
         maNormalHandle = GLES20.glGetAttribLocation(_program, "aNormal");
+        Log.d("ATTRIB LOCATION Normal: ", maNormalHandle + "");
         checkGlError("glGetAttribLocation normal");
         if (maNormalHandle == -1) {
             throw new RuntimeException("Could not get attrib location for normal");
@@ -208,11 +217,11 @@ public class Shader {
         }
 
         // modelview/projection matrix
-        muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "uMVPMatrix");
+        /*muMVPMatrixHandle = GLES20.glGetUniformLocation(_program, "uMVPMatrix");
         checkGlError("glGetUniformLocation uMVPMatrix");
         if (muMVPMatrixHandle == -1) {
             throw new RuntimeException("Could not get attrib location for uMVPMatrix");
-        }
+        }*/
         
         // normal matrix handle
         normalMatrixHandle = GLES20.glGetUniformLocation(_program, "normalMatrix");
@@ -272,7 +281,7 @@ public class Shader {
 		GLES20.glEnableVertexAttribArray(this.eyeHandle);
 		GLES20.glEnableVertexAttribArray(this.maNormalHandle);
 		GLES20.glEnableVertexAttribArray(this.hasTextureHandle);
-		GLES20.glEnableVertexAttribArray(this.muMVPMatrixHandle);
+		//GLES20.glEnableVertexAttribArray(this.muMVPMatrixHandle);
 		GLES20.glEnableVertexAttribArray(this.normalMatrixHandle);
 		
 		GLES20.glEnableVertexAttribArray(this.lightColorHandle);
@@ -282,6 +291,24 @@ public class Shader {
 		GLES20.glEnableVertexAttribArray(this.matDiffuseHandle);
 		GLES20.glEnableVertexAttribArray(this.matSpecularHandle);
 		GLES20.glEnableVertexAttribArray(this.matShininessHandle);
+	}
+	
+	// Disables attribarrays
+	public void disableArrays() {
+		GLES20.glDisableVertexAttribArray(this.maPositionHandle);
+		GLES20.glDisableVertexAttribArray(this.eyeHandle);
+		GLES20.glDisableVertexAttribArray(this.maNormalHandle);
+		GLES20.glDisableVertexAttribArray(this.hasTextureHandle);
+		GLES20.glDisableVertexAttribArray(this.muMVPMatrixHandle);
+		GLES20.glDisableVertexAttribArray(this.normalMatrixHandle);
+		
+		GLES20.glDisableVertexAttribArray(this.lightColorHandle);
+		GLES20.glDisableVertexAttribArray(this.lightPosHandle);
+		
+		GLES20.glDisableVertexAttribArray(this.matAmbientHandle);
+		GLES20.glDisableVertexAttribArray(this.matDiffuseHandle);
+		GLES20.glDisableVertexAttribArray(this.matSpecularHandle);
+		GLES20.glDisableVertexAttribArray(this.matShininessHandle);
 	}
 	
 	/**

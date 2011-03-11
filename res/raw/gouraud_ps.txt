@@ -1,0 +1,17 @@
+precision mediump float;
+
+// texture variables
+uniform sampler2D sTexture;
+varying float tex;
+varying vec2 tCoord;
+
+// the color
+varying vec4 color;
+
+void main() {
+	if (tex >= 1.0) {
+		gl_FragColor = texture2D(sTexture, tCoord);
+	}
+	else
+		gl_FragColor = color;
+}
