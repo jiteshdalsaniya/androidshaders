@@ -132,7 +132,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
 			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
 		} catch (Exception e) {
-			showAlert("" + e.getMessage());
+			//showAlert("" + e.getMessage());
 		}
 
 		// set current object and shader
@@ -169,9 +169,6 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Start using the shader
 		GLES20.glUseProgram(_program);
 		checkGlError("glUseProgram");
-
-		//GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-		// GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);
 
 		// MODELVIEW MATRIX
 		long time = SystemClock.uptimeMillis() % 4000L;
@@ -243,8 +240,8 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// Texture info
 
-		// bind texture
-		if (ob.hasTexture() && enableTexture) {
+		// bind textures
+		if (ob.hasTexture()) {// && enableTexture) {
 			// number of textures
 			int[] texIDs = ob.get_texID(); 
 			
@@ -271,7 +268,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
 		checkGlError("glDrawElements");
 
-		GLES20.glUseProgram(0);
+		//GLES20.glUseProgram(0);
 		/** END DRAWING OBJECT ***/
 	}
 
@@ -285,7 +282,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glViewport(0, 0, width, height);
 		float ratio = (float) width / height;
 		//Matrix.frustumM(mProjMatrix, 0, -5, 5, -1, 1, 0.5f, 6.0f);
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 11);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 	}
 
 	/**
@@ -296,13 +293,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		// initialize shaders
 		try {
 			_shaders[0] = new Shader(vShaders[0], fShaders[0], mContext, false, 0); // gouraud
-			//_shaders[0].load();
-			Log.d("SHADER 0 DONE!", "SHADER 0");
 			_shaders[1] = new Shader(vShaders[1], fShaders[1], mContext, false, 0); // phong
-			//_shaders[1].load();
-			Log.d("SHADER 1 DONE!", "SHADER 1");
-			_shaders[2] = new Shader(vShaders[2], fShaders[2], mContext, false, 0); // temporary
-			Log.d("SHADER 2 DONE!", "SHADER 2");
+			_shaders[2] = new Shader(vShaders[2], fShaders[2], mContext, false, 0); // normal map
 		} catch (Exception e) {
 			Log.d("SHADER 0 SETUP", e.getLocalizedMessage());
 		}
@@ -314,7 +306,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// cull backface
 		GLES20.glEnable( GLES20.GL_CULL_FACE );
-		GLES20.glCullFace(GLES20.GL_BACK); // Should be culling GL_BACK though - fix meshes?
+		GLES20.glCullFace(GLES20.GL_BACK); 
 
 		// light variables
 		float[] lightP = {3.0f, 3.0f, -3.0f, 1};
@@ -342,9 +334,6 @@ class Renderer implements GLSurfaceView.Renderer {
 		// setup textures for all objects
 		for(int i = 0; i < _objects.length; i++)
 			setupTextures(_objects[i]);
-
-		// load the shaders
-		//_shaders[0].load();
 		
 		// set the view matrix
 		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
@@ -359,12 +348,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * @param represents the other shader 
 	 */
 	public void setShader(int shader) {
-		//_shaders[_currentShader].disableArrays();
 		_currentShader = shader;
-		//_shaders[_currentShader].load();
-		
-		//_shaders[0] = new Shader(vShaders[shader], fShaders[shader], mContext, false, 0);
-		//_shaders[1] = new Shader(vShaders[shader], fShaders[shader], mContext, false, 0);
 	}
 
 	/**
@@ -373,12 +357,6 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	public void setObject(int object) {
 		_currentObject = object;
-
-		// setup texture?
-		//_objects[_currentObject].setupTexture(mContext);
-		//setupTextures(object);
-		
-		//this.toggleTexturing();
 	}
 
 	/**
@@ -386,30 +364,17 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	public void flipTexturing() {
 		enableTexture = !enableTexture;
-
-		this.toggleTexturing();
-	}
-
-	/**
-	 * Enables or disables texturing
-	 */
-	public void toggleTexturing() { // CRASH HERE
 		Object3D ob = _objects[this._currentObject];
-		if (ob.hasTexture()) {
-			if (enableTexture) {
-				this.setupTextures(ob);
-			}
-			//else // add a  toast here!
-			//GLES20.glDisable(GLES20.GL_TEXTURE_2D);
-		}
-		else {
+		
+		if (enableTexture && !ob.hasTexture()) {
 			// Create a toast notification signifying that there is no texture associated with this object
-			CharSequence text = "Hello toast!";
+			CharSequence text = "Object does not have associated texture";
 			int duration = Toast.LENGTH_SHORT;
 
-			//Toast toast = Toast.makeText(mContext, text, duration);
-			//toast.show();
+			Toast toast = Toast.makeText(mContext, text, duration);
+			toast.show();
 		}
+		//this.toggleTexturing();
 	}
 
 	/**
@@ -470,6 +435,16 @@ class Renderer implements GLSurfaceView.Renderer {
 	/**
 	 * Scaling
 	 */
+	public void changeScale(float scale) {
+		if (scaleX * scale > 1.22f)
+			return;
+		scaleX *= scale;scaleY *= scale;scaleZ *= scale;
+		//scaleX += scale;scaleY += scale;scaleZ += scale;
+		//scaleX = scale;scaleY = scale;scaleZ = scale;
+		//scaleX /= 100;scaleY /= 100;scaleZ /= 100;
+		Log.d("SCALE: ", scaleX + "");
+	}
+	
 	public void increaseScale() {
 		scaleX += 0.01f;
 		scaleY += 0.01f;
@@ -497,86 +472,5 @@ class Renderer implements GLSurfaceView.Renderer {
 			throw new RuntimeException(op + ": glError " + error);
 		}
 	}
-
-
-	// debugging
-	private void showAlert(String alert2) {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this.mContext);
-		builder.setMessage(alert2)
-		.setCancelable(false)
-		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-			// Just close the activity
-			public void onClick(DialogInterface dialog, int id) {
-				//Renderer.this.mContext.finish();
-			}
-		});
-		/*.setNegativeButton("No", new DialogInterface.OnClickListener() {
-    	           public void onClick(DialogInterface dialog, int id) {
-    	                dialog.cancel();
-    	           }
-    	       });*/
-		AlertDialog alert = builder.create();
-		alert.show();
-	}
-
-
-	/******************* SHADER CODE *****************/
 	
-	
-	
-	/******************* UNNEEDED CODE *************/
-
-
-	/*
-	 * Create our texture(s). This has to be done each time the
-	 * surface is created.
-	 */
-	//if ( _objects[this._currentObject].hasTexture())
-	//_objects[this._currentObject].setupTexture(mContext);
-	//for (int i = 0; i < _objects.length; i++)
-	//_objects[i].setupTexture(mContext);
-
-	/*int[] textures = new int[1];
-    GLES20.glGenTextures(1, textures, 0);
-
-    mTextureID = textures[0];
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureID);
-
-    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
-            GLES20.GL_NEAREST);
-    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
-            GLES20.GL_TEXTURE_MAG_FILTER,
-            GLES20.GL_LINEAR);
-
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S,
-            GLES20.GL_REPEAT);
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
-            GLES20.GL_REPEAT);
-
-    InputStream is = mContext.getResources()
-        .openRawResource(R.raw.robot);
-    Bitmap bitmap;
-    try {
-        bitmap = BitmapFactory.decodeStream(is);
-    } finally {
-        try {
-            is.close();
-        } catch(IOException e) {
-            // Ignore.
-        }
-    }
-
-    GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-    bitmap.recycle();*/
-
-	// TEST DATA
-	/* 
-	 * private final float[] mTriangleVerticesData = {
-			// X, Y, Z, U, V
-			-1.0f, -0.5f, 0, -0.5f, 0.0f,
-			1.0f, -0.5f, 0, 1.5f, -0.0f,
-			0.0f,  1.11803399f, 0, 0.5f,  1.61803399f };
-
-		private FloatBuffer mTriangleVertices;
-	 */
-}
+} // END CLASS
