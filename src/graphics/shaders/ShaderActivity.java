@@ -15,6 +15,8 @@
     - Normal Mapping
     
     The code was constructed by using GLES20TriangleRenderer.java from the Android SDK as a base.
+    @Author Shayan Javed.
+    Last edited: 13th March 2011
  */
 
 package graphics.shaders;
