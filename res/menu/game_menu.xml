@@ -9,5 +9,6 @@
     <item android:id="@+id/octahedron" android:title="@+string/octahedron"></item>
     <item android:id="@+id/tetrahedron" android:title="@+string/tetrahedron"></item>
     <item android:id="@+id/cube" android:title="@+string/cube"></item>
-    <item android:id="@+id/texture" android:title="@+string/texture"></item>    
+    <item android:id="@+id/texture" android:title="@+string/texture"></item>
+    <item android:id="@+id/toggleLight" android:title="@+string/toggleLight"></item>    
 </menu>

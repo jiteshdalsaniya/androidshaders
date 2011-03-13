@@ -45,9 +45,6 @@ public class ShaderActivity extends Activity {
 		mGLSurfaceView = new GLSurfaceView(this);
 
 		// detect if OpenGL ES 2.0 support exists - if it doesn't, exit.
-		//mGLSurfaceView.setEGLContextClientVersion(2);
-		//renderer = new Renderer(this);
-		//mGLSurfaceView.setRenderer(renderer);
 		if (detectOpenGLES20()) {
             // Tell the surface view we want to create an OpenGL ES 2.0-compatible
             // context, and set an OpenGL ES 2.0-compatible renderer.
@@ -55,7 +52,7 @@ public class ShaderActivity extends Activity {
             renderer = new Renderer(this);
             mGLSurfaceView.setRenderer(renderer);
         } 
-        else { // quit if no support
+        else { // quit if no support - get a better phone! :P
         	this.finish();
         }
 		/*else {
@@ -127,6 +124,9 @@ public class ShaderActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle item selection
 		switch (item.getItemId()) {
+		case R.id.toggleLight:
+			renderer.toggleLight();
+			return true;
 		case R.id.gouraud: 			// Gouraud Shading
 			renderer.setShader(this.GOURAUD_SHADER);
 			return true;
