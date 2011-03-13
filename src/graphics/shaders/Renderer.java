@@ -320,7 +320,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glCullFace(GLES20.GL_BACK); 
 
 		// light variables
-		float[] lightP = {10.0f, 0.0f, 10.0f, 1};
+		float[] lightP = {30.0f, 0.0f, 10.0f, 1};
 		this.lightPos = lightP;
 
 		float[] lightC = {0.5f, 0.5f, 0.5f};

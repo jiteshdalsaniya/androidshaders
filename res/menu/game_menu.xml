@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/gouraud" android:title="@string/gouraud"/>
+    <item android:title="@+string/toggleLight" android:id="@+id/toggleLight"></item><item android:id="@+id/gouraud" android:title="@string/gouraud"></item>
     <item android:id="@+id/quit"
           android:title="@string/quit" >
     </item>
@@ -10,5 +10,5 @@
     <item android:id="@+id/tetrahedron" android:title="@+string/tetrahedron"></item>
     <item android:id="@+id/cube" android:title="@+string/cube"></item>
     <item android:id="@+id/texture" android:title="@+string/texture"></item>
-    <item android:id="@+id/toggleLight" android:title="@+string/toggleLight"></item>    
+        
 </menu>
