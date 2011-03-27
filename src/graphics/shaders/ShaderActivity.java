@@ -1,19 +1,19 @@
 /**
  * OpenGL ES 2.0 examples for Android
  * ----------------------------------
-  
+
    The purpose was to create a simple framework for working with 
    OpenGL ES 2.0 in Android. Features:
-  
+
    1) Loads triangular meshes in these formats:
  	- (.OFF): Vertex positions + normals
  	- (.OBJ): Vertex positions, normals and texture coordinates
-  
+
    2) Shader functionality. There are three shaders:
     - Gouraud Shading (Per-vertex lighting)
     - Phong Shading (Per-pixel lighting)
     - Normal Mapping
-    
+
     The code was constructed by using GLES20TriangleRenderer.java from the Android SDK as a base.
     @Author Shayan Javed.
     Last edited: 13th March 2011
@@ -48,34 +48,17 @@ public class ShaderActivity extends Activity {
 
 		// detect if OpenGL ES 2.0 support exists - if it doesn't, exit.
 		if (detectOpenGLES20()) {
-            // Tell the surface view we want to create an OpenGL ES 2.0-compatible
-            // context, and set an OpenGL ES 2.0-compatible renderer.
-            mGLSurfaceView.setEGLContextClientVersion(2);
-            renderer = new Renderer(this);
-            mGLSurfaceView.setRenderer(renderer);
-        } 
-        else { // quit if no support - get a better phone! :P
-        	this.finish();
-        }
-		/*else {
-            // Give the user an error saying that it is not supported
-        	AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        	builder.setMessage("Your crappy phone does not support OpenGL ES 2.0. Click ok to close the application")
-        	       .setCancelable(false)
-        	       .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-        	    	   // Just close the activity
-        	           public void onClick(DialogInterface dialog, int id) {
-        	                ShaderActivity.this.finish();
-        	           }
-        	       });
-        	       /*.setNegativeButton("No", new DialogInterface.OnClickListener() {
-        	           public void onClick(DialogInterface dialog, int id) {
-        	                dialog.cancel();
-        	           }
-        	       });
-        	AlertDialog alert = builder.create();
-        	alert.show();
-        }*/
+			// Tell the surface view we want to create an OpenGL ES 2.0-compatible
+			// context, and set an OpenGL ES 2.0-compatible renderer.
+			mGLSurfaceView.setEGLContextClientVersion(2);
+			renderer = new Renderer(this);
+			mGLSurfaceView.setRenderer(renderer);
+		} 
+		else { // quit if no support - get a better phone! :P
+			this.finish();
+		}
+
+		// set the content view
 		setContentView(mGLSurfaceView);
 	}
 
@@ -90,22 +73,6 @@ public class ShaderActivity extends Activity {
 		Log.d("OpenGL Ver:", info.getGlEsVersion());
 		return (info.reqGlEsVersion >= 0x20000);
 	}
-
-	/*@Override
-    protected void onResume() {
-        // Ideally a game should implement onResume() and onPause()
-        // to take appropriate action when the activity looses focus
-        //super.onResume();
-        //mGLSurfaceView.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        // Ideally a game should implement onResume() and onPause()
-        // to take appropriate action when the activity looses focus
-        //super.onPause();
-        //mGLSurfaceView.onPause();
-    }*/
 
 	/************
 	 *  MENU FUNCTIONS
@@ -165,53 +132,47 @@ public class ShaderActivity extends Activity {
 		float x = e.getX();
 		float y = e.getY();
 		switch (e.getAction()) {
-			case MotionEvent.ACTION_DOWN:			// one touch: drag
-		      Log.d("ShaderActivity", "mode=DRAG" );
-		      mode = DRAG;
-		      break;
-			case MotionEvent.ACTION_POINTER_DOWN:	// two touches: zoom
-				Log.d("ShaderActivity", "mode=ZOOM" );
-				oldDist = spacing(e);
-				if (oldDist > 10.0f) {
-					mode = ZOOM; // zoom
+		case MotionEvent.ACTION_DOWN:			// one touch: drag
+			Log.d("ShaderActivity", "mode=DRAG" );
+			mode = DRAG;
+			break;
+		case MotionEvent.ACTION_POINTER_DOWN:	// two touches: zoom
+			Log.d("ShaderActivity", "mode=ZOOM" );
+			oldDist = spacing(e);
+			if (oldDist > 10.0f) {
+				mode = ZOOM; // zoom
+			}
+			break;
+		case MotionEvent.ACTION_UP:		// no mode
+			mode = NONE;
+			Log.d("ShaderActivity", "mode=NONE" );
+			oldDist = 100.0f;
+			break;
+		case MotionEvent.ACTION_POINTER_UP:		// no mode
+			mode = NONE;
+			Log.d("ShaderActivity", "mode=NONE" );
+			oldDist = 100.0f;
+			break;
+		case MotionEvent.ACTION_MOVE:						// rotation
+			if (e.getPointerCount() > 1 && mode == ZOOM) {
+				newDist = spacing(e);
+				Log.d("SPACING: ", "OldDist: " + oldDist + ", NewDist: " + newDist);
+				if (newDist > 10.0f) {
+					float scale = newDist/oldDist; // scale
+					// scale in the renderer
+					renderer.changeScale(scale);
+
+					oldDist = newDist;
 				}
-				break;
-			case MotionEvent.ACTION_UP:		// no mode
-				mode = NONE;
-				Log.d("ShaderActivity", "mode=NONE" );
-				oldDist = 100.0f;
-				break;
-			case MotionEvent.ACTION_POINTER_UP:		// no mode
-				mode = NONE;
-				Log.d("ShaderActivity", "mode=NONE" );
-				oldDist = 100.0f;
-				break;
-			case MotionEvent.ACTION_MOVE:						// rotation
-				if (e.getPointerCount() > 1 && mode == ZOOM) {
-					newDist = spacing(e);
-					Log.d("SPACING: ", "OldDist: " + oldDist + ", NewDist: " + newDist);
-					if (newDist > 10.0f) {
-						float scale = newDist/oldDist; // scale
-						// scale in the renderer
-						renderer.changeScale(scale);
-						
-						oldDist = newDist;
-					}
-					/*if (newDist > oldDist) { 		// distance increasing - scale
-						renderer.increaseScale();
-					}
-					else if (newDist < oldDist){ 	// distance decreasing
-						renderer.decreaseScale();
-					}*/
-				}
-				else if (mode == DRAG){
-					float dx = x - mPreviousX;
-					float dy = y - mPreviousY;
-					renderer.mAngleX += dx * TOUCH_SCALE_FACTOR;
-					renderer.mAngleY += dy * TOUCH_SCALE_FACTOR;
-					mGLSurfaceView.requestRender();
-				}
-				break;
+			}
+			else if (mode == DRAG){
+				float dx = x - mPreviousX;
+				float dy = y - mPreviousY;
+				renderer.mAngleX += dx * TOUCH_SCALE_FACTOR;
+				renderer.mAngleY += dy * TOUCH_SCALE_FACTOR;
+				mGLSurfaceView.requestRender();
+			}
+			break;
 		}
 		mPreviousX = x;
 		mPreviousY = y;
@@ -261,10 +222,10 @@ public class ShaderActivity extends Activity {
 	private final int NONE = 0;
 	private final int DRAG = 0;
 	private final int ZOOM = 0;
-	
+
 	// pinch to zoom
 	float oldDist = 100.0f;
 	float newDist;
-	
+
 	int mode = 0;
 }

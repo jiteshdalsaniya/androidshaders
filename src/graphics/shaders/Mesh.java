@@ -113,12 +113,6 @@ public class Mesh {
 					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
 			_vb.put(_vertices);
 			_vb.position(0);
-			
-			// normal buffer
-			/*_nb = ByteBuffer.allocateDirect(_normals.length
-					* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer();
-			_nb.put(_normals);
-			_nb.position(0);*/
 
 			// index buffer
 			_ib = ByteBuffer.allocateDirect(_indices.length
@@ -219,8 +213,6 @@ public class Mesh {
 				_indices[i * 3 + 1] = secondV;
 				_indices[i * 3 + 2] = thirdV;
 
-				//Log.d("Reading Faces:", _indices[i * 3 + 0] + " " + _indices[i * 3 + 1] + " " + _indices[i * 3 + 2]);
-
 				// Calculate the face normal
 				setFaceNormal(i, firstV, secondV, thirdV);
 			}
@@ -230,14 +222,6 @@ public class Mesh {
 				_vertices[x * this.VERTEX_ARRAY_SIZE + 3] /= _surroundingFaces[x];
 				_vertices[x * this.VERTEX_ARRAY_SIZE + 4] /= _surroundingFaces[x];
 				_vertices[x * this.VERTEX_ARRAY_SIZE + 5] /= _surroundingFaces[x];
-
-				/*_normals[x * 3]     /= _surroundingFaces[x];
-				_normals[x * 3 + 1] /= _surroundingFaces[x];
-				_normals[x * 3 + 2] /= _surroundingFaces[x];*/
-				
-				//Log.d("SurroundingFaces: ", x + ": " + _surroundingFaces[x]);
-
-				////Log.d("Exact normal: ", _normals[x * 3] + "," + _normals[x * 3 + 1] + "," + _normals[x * 3 + 2]);
 			}
 			
 			return 1;
@@ -299,7 +283,6 @@ public class Mesh {
 			int numTexCoords = 0;
 			if (type.equals("vt")) {
 				while(type.equals("vt")) {
-					//Log.d("In OBJ:", "VT: " + str);
 					tc.add(Float.parseFloat(t.nextToken())); 	// u
 					tc.add(Float.parseFloat(t.nextToken()));	// v
 				
@@ -315,7 +298,6 @@ public class Mesh {
 			// read vertex normals
 			if (type.equals("vn")) {
 				while(type.equals("vn")) {
-					//Log.d("In OBJ:", "VN: " + str);
 					ns.add(Float.parseFloat(t.nextToken())); 	// x
 					ns.add(Float.parseFloat(t.nextToken()));	// y
 					ns.add(Float.parseFloat(t.nextToken()));	// y
@@ -336,34 +318,22 @@ public class Mesh {
 			// texcoord
 			_texCoords = new float[numTexCoords * 2];
 			
-			//Log.d("SETUP ARRAYS:", "DONE");
-			
 			// copy over data - INEFFICIENT [SHOULD BE A BETTER WAY]
-			////Log.d("SIZES: ", "V SIZE: " + numVertices + "; TC SIZE: " + numTexCoords);
 			for(int i = 0; i < numVertices; i++) {
-				////Log.d("VERTEX TRANSFER i: ", i + "");
 				_v[i * 3] 	 = vs.get(i * 3);
 				_v[i * 3 + 1] = vs.get(i * 3 + 1);
 				_v[i * 3 + 2] = vs.get(i * 3 + 2);
 				
-				////Log.d("VERTEX TRANSFER: ", "1");
-				
 				_n[i * 3 ] 	= -ns.get(i * 3);
 				_n[i * 3 + 1] = -ns.get(i * 3 + 1);
 				_n[i * 3 + 2] = -ns.get(i * 3 + 2);
-				
-				////Log.d("VERTEX TRANSFER: ", "2");
 				
 				// transfer tex coordinates
 				if (i < numTexCoords) {
 					_texCoords[i * 2] 	  = tc.get(i * 2);
 					_texCoords[i * 2 + 1] = tc.get(i * 2 + 1);
 				}
-				
-				////Log.d("VERTEX TRANSFER: ", "3");
 			}
-			
-			//Log.d("COMPLETED ARRAYS:", "Complete");
 			
 			// now read all the faces
 			String fFace, sFace, tFace;
@@ -374,13 +344,10 @@ public class Mesh {
 			short index = 0;
 			if (type.equals("f")) {
 				while (type.equals("f")) {
-					
-					//Log.d("F LINE:", str);
 					// Each line: f v1/vt1/vn1 v2/vt2/vn2 
 					// Figure out all the vertices
 					for (int j = 0; j < 3; j++) {
 						fFace = t.nextToken();
-						//Log.d("FFACE TOKEN:", j + "," + fFace);
 						// another tokenizer - based on /
 						ft = new StringTokenizer(fFace, "/");
 						int vert = Integer.parseInt(ft.nextToken()) - 1;
@@ -390,22 +357,19 @@ public class Mesh {
 						// Add to the index buffer
 						indicesB.add(index++);
 						
-						//Log.d("FFACE TOKEN:", "1");
-						
 						// Add all the vertex info
 						mainBuffer.add(_v[vert * 3]); 	 // x
 						mainBuffer.add(_v[vert * 3 + 1]);// y
 						mainBuffer.add(_v[vert * 3 + 2]);// z
-						//Log.d("FFACE TOKEN:", "2");
+					
 						// add the normal info
 						mainBuffer.add(_n[vertN * 3]); 	  // x
 						mainBuffer.add(_n[vertN * 3 + 1]); // y
 						mainBuffer.add(_n[vertN * 3 + 2]); // z
-						//Log.d("FFACE TOKEN:", "3");
+						
 						// add the tex coord info
 						mainBuffer.add(_texCoords[texc * 2]); 	  // u
 						mainBuffer.add(_texCoords[texc * 2 + 1]); // v
-						//Log.d("FFACE TOKEN:", "4");
 						
 					}
 					
@@ -439,11 +403,6 @@ public class Mesh {
 				_indices[i] = indicesB.get(i);
 			}
 			
-			// print out all the vertices info
-			/*Log.d("VERTEX OBJ LENGTH: ", _vertices.length + "");
-			for(int i = 0; i < _vertices.length; i++) 
-				Log.d("Vertex INFO OBJ: ", i + "; " + _vertices[i]);*/
-			
 			return 1;
 			
 		} catch(Exception e) {
@@ -465,11 +424,8 @@ public class Mesh {
 
 		// calculate the cross product of v1-v2 and v2-v3
 		float v1v2[] = {v1[0]-v2[0], v1[1]-v2[1], v1[2]-v2[2]};
-		//float v3v2[] = {v2[0]-v3[0], v2[1]-v3[1], v2[2]-v3[2]};
 		float v3v2[] = {v3[0]-v2[0], v3[1]-v2[1], v3[2]-v2[2]};
-
-		//Log.d("V1V2: ", v1v2[0] + "," + v1v2[1] + "," + v1v2[2]);
-		//Log.d("V3V2: ", v3v2[0] + "," + v3v2[1] + "," + v3v2[2]);
+		
 		float cp[] = crossProduct(v1v2, v3v2);
 
 		// try normalizing here
@@ -493,20 +449,6 @@ public class Mesh {
 		_faceNormals[i * 3]     = cp[0];
 		_faceNormals[i * 3 + 1] = cp[1];
 		_faceNormals[i * 3 + 2] = cp[2];
-		//Log.d("NORMAL:", cp[0] + "," + cp[1] + "," + cp[2]);
-
-		// Setup for vertex normal construction;
-		/*_normals[firstV * 3]     += _faceNormals[i * 3];
-		_normals[firstV * 3 + 1] += _faceNormals[i * 3 + 1];
-		_normals[firstV * 3 + 2] += _faceNormals[i * 3 + 2];
-		
-		_normals[secondV * 3]     += _faceNormals[i * 3];
-		_normals[secondV * 3 + 1] += _faceNormals[i * 3 + 1];
-		_normals[secondV * 3 + 2] += _faceNormals[i * 3 + 2];
-		
-		_normals[thirdV * 3]     += _faceNormals[i * 3];
-		_normals[thirdV * 3 + 1] += _faceNormals[i * 3 + 1];
-		_normals[thirdV * 3 + 2] += _faceNormals[i * 3 + 2];*/
 
 		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 3] += _faceNormals[i * 3];
 		_vertices[firstV * this.VERTEX_ARRAY_SIZE + 4] += _faceNormals[i * 3 + 1];
