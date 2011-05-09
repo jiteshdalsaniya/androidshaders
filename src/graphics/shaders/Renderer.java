@@ -343,7 +343,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "textureCoord"));//GLES20.glEnableVertexAttribArray(shader.maTextureHandle);
 
 		// Draw with indices
-		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _quadi.length, GLES20.GL_UNSIGNED_INT, _qib);
+		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _quadi.length, GLES20.GL_UNSIGNED_INT, _qib); // NOTE: On some devices GL_UNSIGNED_SHORT works 
 		checkGlError("glDrawElements");
 
 		/** END DRAWING OBJECT ***/
@@ -397,7 +397,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
 
 		// send to the shader
-		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, mMVPMatrix, 0);
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, normalMatrix, 0);//mMVPMatrix, 0);
 
 		// lighting variables
 		// send to shaders
