@@ -127,6 +127,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	int texW = 480 * 2;
 	int texH = 800 * 2;
 	IntBuffer texBuffer;
+	private boolean aa = true;	// anti-aliasing
 	
 	// viewport variables
 	float ratio = 1.0f;
@@ -211,9 +212,44 @@ class Renderer implements GLSurfaceView.Renderer {
         // Ignore the passed-in GL10 interface, and use the GLES20
 		// class's static methods instead.
 		
-		/********* RENDER TO TEXTURE HERE ****************/
-		renderToTexture();
+		// If supersampling is on, use render to texture - otherwise just use regular rendering
+        if (aa) {
+        	renderToTexture();
+        	return;
+        }
+        else {
+        	regularRender();
+        }
+        
 		
+	}
+
+	/**
+	 * Renders to a texture
+	 */
+	private boolean renderToTexture() {
+		// much bigger viewport?
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
+		GLES20.glViewport(0, 0, this.texW, this.texH);
+		
+		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb[0]);
+		
+		// specify texture as color attachment
+		GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
+		//GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
+		
+		// attach render buffer as depth buffer
+		GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb[0]);
+		//GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_RENDERBUFFER, depthRb[0]);
+		
+		// check status
+		int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+		if (status != GLES20.GL_FRAMEBUFFER_COMPLETE)
+			return false;
+
+		// draw all the objects
+		regularRender();
+
 		/********* NOW JUST TRY TO RENDER THE TEXTURE ************/
 
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -237,10 +273,6 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glViewport(0, 0, w, h);
 		//Matrix.orthoM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 		
-		// modelview matrix
-		//Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mProjMatrix, 0);
-		//Matrix.setIdentityM(mMVPMatrix, 0);
-		
 		// scaling
 		Matrix.setIdentityM(mScaleMatrix, 0);
 		//Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
@@ -250,7 +282,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.setRotateM(mRotYMatrix, 0, 0, 0.0f, 1.0f, 0.0f);
 
 		// Set the ModelViewProjectionMatrix
-		float tempMatrix[] = new float[16]; 
+		float[] tempMatrix = new float[16]; 
 		Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
 		Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
@@ -318,29 +350,17 @@ class Renderer implements GLSurfaceView.Renderer {
 		// clear render to texture buffer?
 		//texBuffer.clear();
 		//this.setupRenderToTexture();
+		
+		
+		/** END DRAWING OBJECT ***/
+		return true;
 	}
-
+	
+	
 	/**
-	 * Renders to a texture
+	 * Render the objects
 	 */
-	private boolean renderToTexture() {
-		// much bigger viewport?
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
-		GLES20.glViewport(0, 0, this.texW, this.texH);
-		
-		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb[0]);
-		
-		// specify texture as color attachment
-		GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
-		
-		// attach render buffer as depth buffer
-		GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb[0]);
-		
-		// check status
-		int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
-		if (status != GLES20.GL_FRAMEBUFFER_COMPLETE)
-			return false;
-
+	private void regularRender() {
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
@@ -443,13 +463,9 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Draw with indices
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
 		checkGlError("glDrawElements");
-
 		
-		
-		
-		/** END DRAWING OBJECT ***/
-		return true;
 	}
+	
 	/*
 	 * Called when viewport is changed
 	 * @see android.opengl.GLSurfaceView$Renderer#onSurfaceChanged(javax.microedition.khronos.opengles.GL10, int, int)
@@ -549,7 +565,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glGenRenderbuffers(1, depthRb, 0);
 		GLES20.glGenTextures(1, renderTex, 0);
 		
-		// generate texture
+		// generate color texture
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTex[0]);
 
 		// parameters
@@ -633,6 +649,22 @@ class Renderer implements GLSurfaceView.Renderer {
 			text = "Light rotation resumed";
 		else
 			text = "Light rotation paused";
+		int duration = Toast.LENGTH_SHORT;
+
+		Toast toast = Toast.makeText(mContext, text, duration);
+		toast.show();
+	}
+	
+	/**
+	 * Toggles Anti-aliasing
+	 */
+	public void toggleAA() {
+		this.aa = !aa;
+		CharSequence text;
+		if (aa)
+			text = "Supersampling on";
+		else
+			text = "Supersampling off";
 		int duration = Toast.LENGTH_SHORT;
 
 		Toast toast = Toast.makeText(mContext, text, duration);

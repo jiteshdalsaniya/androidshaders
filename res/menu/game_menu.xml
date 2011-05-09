@@ -4,6 +4,7 @@
     <item android:id="@+id/quit"
           android:title="@string/quit" >
     </item>
+    <item android:id="@+id/aa" android:title="@+string/aa"></item>
     <item android:id="@+id/phong" android:title="@+string/phong"></item>
     <item android:id="@+id/normal_map" android:title="@+string/normal"></item>
     <item android:id="@+id/octahedron" android:title="@+string/octahedron"></item>

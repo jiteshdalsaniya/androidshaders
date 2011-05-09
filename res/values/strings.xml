@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="toggleLight">Light Rotation</string><string name="gouraud">Shader: Gouraud</string>
+    <string name="toggleLight">Light Rotation</string>
+    <string name="gouraud">Shader: Gouraud</string>
     <string name="phong">Shader: Phong</string>
 	<string name="normal">Shader: Normal Mapping</string>
+	<string name="aa">Supersampling on/off</string>
 	<string name="quit">Quit</string>
     <string name="app_name">AndroidShaders</string>
     <string name="octahedron">Mesh: Octahedron</string>

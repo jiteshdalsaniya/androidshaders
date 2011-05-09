@@ -93,9 +93,11 @@ public class ShaderActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle item selection
 		switch (item.getItemId()) {
-		case R.id.toggleLight:
+		case R.id.toggleLight:		// Lighting
 			renderer.toggleLight();
 			return true;
+		case R.id.aa:				// Anti-aliasing
+			renderer.toggleAA();
 		case R.id.gouraud: 			// Gouraud Shading
 			renderer.setShader(this.GOURAUD_SHADER);
 			return true;
