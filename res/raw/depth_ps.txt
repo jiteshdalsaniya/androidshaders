@@ -1,8 +1,13 @@
 // Pixel shader to generate the Depth Map
 // Used for shadow mapping - generates depth map from the light's viewpoint
+precision mediump float;
 
 void main() {
 	
 	// output the depth (z-coordinate in gl_FragCoord)
-	gl_Position = gl_FragDepth; //uMVPMatrix * aPosition; 
+	float depth = pow(gl_FragCoord.z, 3.0);
+	gl_FragColor = vec4(depth, depth, depth, depth);  
+	
+	
+	//gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);  
 }

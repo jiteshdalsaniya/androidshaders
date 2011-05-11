@@ -96,8 +96,6 @@ public class ShaderActivity extends Activity {
 		case R.id.toggleLight:		// Lighting
 			renderer.toggleLight();
 			return true;
-		case R.id.aa:				// Anti-aliasing
-			renderer.toggleAA();
 		case R.id.gouraud: 			// Gouraud Shading
 			renderer.setShader(this.GOURAUD_SHADER);
 			return true;

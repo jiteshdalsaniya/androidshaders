@@ -44,9 +44,10 @@ class Renderer implements GLSurfaceView.Renderer {
 	private final int GOURAUD_SHADER = 0;
 	private final int PHONG_SHADER = 1;
 	private final int NORMALMAP_SHADER = 2;
+	private final int DEPTHMAP_SHADER = 3; // generates the depth map
 
 	// array of shaders
-	Shader _shaders[] = new Shader[3];
+	Shader _shaders[] = new Shader[4];
 	private int _currentShader;
 
 	/** Shader code **/
@@ -60,14 +61,16 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// The objects
 	Object3D[] _objects = new Object3D[3];
-
+	// The plane (to display the shadow)
+	Object3D _plane;
+	
 	// the full-screen quad buffers
-							
 	final float x = 10.0f;
 	final float y = 15.0f;
 	final float z = 2.0f;
+	
 	// vertex information - clockwise
-							// x, y, z, nx, ny, nz, u, v
+						   // x, y, z, nx, ny, nz, u, v
 	final float _quadv[] = { -x, -y, z, 0, 0, -1, 0, 0,
 							 -x,  y, z, 0, 0, -1, 0, 1,
 							  x,  y, z, 0, 0, -1, 1, 1,
@@ -75,11 +78,12 @@ class Renderer implements GLSurfaceView.Renderer {
 						   };
 
 	private FloatBuffer _qvb;
+	
 	// index
-	final int _quadi[] = { 0, 1, 2,
+	final short _quadi[] = { 0, 1, 2,
 			              2, 3, 0  
 						};
-	private IntBuffer _qib;
+	private ShortBuffer _qib;
 	
 	// current object
 	private int _currentObject;
@@ -101,8 +105,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	// light parameters
 	private float[] lightPos;
 	private float[] lightColor;
-	private float[] lightAmbient;
-	private float[] lightDiffuse;
+	
 	// angle rotation for light
 	float angle = 0.0f;
 	boolean lightRotate = true; 
@@ -116,7 +119,11 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// eye pos
 	private float[] eyePos = {-5.0f, 0.0f, 0.0f};
-
+	float eyeView[] = { 0.0f, 0.0f, -5.0f,  // eyePosition
+ 						0.0f, 0.0f, 0.0f,   // center (where it's looking at
+ 						0.0f, 1.0f, 0.0f    // up vector
+	};
+	
 	// scaling
 	float scaleX = 1.0f;
 	float scaleY = 1.0f;
@@ -124,10 +131,9 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// RENDER TO TEXTURE VARIABLES
 	int[] fb, depthRb, renderTex;
-	int texW = 480 * 2;
-	int texH = 800 * 2;
+	final int texW = 480;
+	final int texH = 800;
 	IntBuffer texBuffer;
-	private boolean aa = true;	// anti-aliasing
 	
 	// viewport variables
 	float ratio = 1.0f;
@@ -153,8 +159,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		mContext = context;
 
 		// setup all the shaders
-		vShaders = new int[3];
-		fShaders = new int[3];
+		vShaders = new int[4];
+		fShaders = new int[4];
 
 		// basic - just gouraud shading
 		vShaders[GOURAUD_SHADER] = R.raw.gouraud_vs;
@@ -168,19 +174,26 @@ class Renderer implements GLSurfaceView.Renderer {
 		vShaders[NORMALMAP_SHADER] = R.raw.normalmap_vs;
 		fShaders[NORMALMAP_SHADER] = R.raw.normalmap_ps;
 
+		// Depth map
+		vShaders[DEPTHMAP_SHADER] = R.raw.depth_vs;
+		fShaders[DEPTHMAP_SHADER] = R.raw.depth_ps;
+		
 		// Create some objects - pass in the textures, the meshes
 		try {
 			int[] normalMapTextures = {R.raw.diffuse_old, R.raw.diffusenormalmap_deepbig};
 			_objects[0] = new Object3D(R.raw.octahedron, false, context);
 			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
 			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
+			
+			// create the plane
+			_plane = new Object3D(R.raw.plane, true, context);
 		} catch (Exception e) {
 			//showAlert("" + e.getMessage());
 		}
 
 		// set current object and shader
 		_currentObject = this.OCTAHEDRON;
-		_currentShader = this.GOURAUD_SHADER;
+		_currentShader = this.DEPTHMAP_SHADER;
 	}
 
 	/*****************************
@@ -213,48 +226,213 @@ class Renderer implements GLSurfaceView.Renderer {
 		// class's static methods instead.
 		
 		// If supersampling is on, use render to texture - otherwise just use regular rendering
-        if (aa) {
+        /*if (aa) {
         	renderToTexture();
         	return;
         }
         else {
         	regularRender();
-        }
+        }*/
+        
+        // This will require multiple passes
+        
+        // First pass:
+        // Render the depth texture from the viewpoint of the light
+        renderDepthToTexture();
+        
         
 		
 	}
 
 	/**
+	 * Draws one object
+	 * @param Object3D the object to draw - uses index buffer
+	 * @param _program the shader program
+	 * @param _sendNormals should normals be sent in?
+	 * @param _sendTextures should textures be sent in?
+	 */
+	void drawObject(Object3D ob, int _program, boolean _sendNormals, boolean _sendTextures) {
+		/*** DRAWING OBJECT **/
+		// Get buffers from mesh
+		Mesh mesh = ob.getMesh();
+		FloatBuffer _vb = mesh.get_vb();
+		ShortBuffer _ib = mesh.get_ib();
+
+		short[] _indices = mesh.get_indices();
+
+		// Vertex buffer
+
+		// the vertex coordinates
+		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
+		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aPosition"), 3, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aPosition"));
+
+		// the normal info
+		if (_sendNormals) {
+			_vb.position(TRIANGLE_VERTICES_DATA_NOR_OFFSET);
+			GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aNormal"), 3, GLES20.GL_FLOAT, false,
+					TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+			GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aNormal"));
+		}
+
+		// Texture info
+
+		// bind textures
+		if (ob.hasTexture() && _sendTextures) {
+			// number of textures
+			int[] texIDs = ob.get_texID(); 
+			
+			for(int i = 0; i < _texIDs.length; i++) {
+				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
+				//Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
+				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
+				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
+			}
+		}
+
+		// enable texturing? [fix - sending float is waste]
+		if (_sendTextures) {
+			GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "hasTexture"), ob.hasTexture() && enableTexture ? 2.0f : 0.0f);
+
+			// texture coordinates
+			_vb.position(TRIANGLE_VERTICES_DATA_TEX_OFFSET);
+			GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "textureCoord"), 2, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+			GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "textureCoord"));
+		}
+		
+		// Draw with indices
+		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
+		checkGlError("glDrawElements");
+		
+		
+	}
+	
+	/**
+	 * Draws all the objects to draw
+	 * @param _program the shader program
+	 * @param _sendNormals should normals be sent in?
+	 */
+	void drawAllObjects(int _program, boolean _sendNormals, boolean _sendTextures) {
+		// Draw the plane first
+		drawObject(_plane, _program,_sendTextures, _sendTextures);
+		
+		// Draw the other object
+		drawObject(this._objects[this._currentObject], _program,_sendTextures, _sendTextures);
+	}
+	
+	/**
 	 * Renders to a texture
 	 */
-	private boolean renderToTexture() {
+	private boolean renderDepthToTexture() {
 		// much bigger viewport?
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
+		//Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 		GLES20.glViewport(0, 0, this.texW, this.texH);
 		
+		// bind the generated framebuffer
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb[0]);
 		
 		// specify texture as color attachment
 		GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
-		//GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
 		
 		// attach render buffer as depth buffer
 		GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb[0]);
-		//GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_RENDERBUFFER, depthRb[0]);
 		
 		// check status
 		int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
 		if (status != GLES20.GL_FRAMEBUFFER_COMPLETE)
 			return false;
 
-		// draw all the objects
-		regularRender();
-
-		/********* NOW JUST TRY TO RENDER THE TEXTURE ************/
-
-		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+		/*** DRAW ***/
+		// Clear color and buffers
+		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
+		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
-		// Same thing, only different texture is bound now
+		// depth map shaders
+		Shader shader = _shaders[this.DEPTHMAP_SHADER]; // PROBLEM!
+		int _program = shader.get_program();
+		
+		// Start using the shader
+		GLES20.glUseProgram(_program);
+		checkGlError("glUseProgram");
+
+		// Setup ModelViewProjectionMatrix
+		
+		// View from the light's perspective (TODO: Does this turn it into a directional light? Generate cube map for point light)
+		Matrix.setLookAtM(mVMatrix, 0, lightPos[0], lightPos[1], lightPos[2], 
+									   eyeView[3], eyeView[4], eyeView[5],
+									   eyeView[6], eyeView[7], eyeView[8]);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 6400);
+		
+		// scaling
+		Matrix.setIdentityM(mScaleMatrix, 0);
+		Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
+
+		// Rotation along x
+		Matrix.setRotateM(mRotXMatrix, 0, this.mAngleY, -1.0f, 0.0f, 0.0f);
+		Matrix.setRotateM(mRotYMatrix, 0, this.mAngleX, 0.0f, 1.0f, 0.0f);
+
+		// Set the ModelViewProjectionMatrix
+		float tempMatrix[] = new float[16]; 
+		Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
+		Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
+		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
+		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
+
+		// send to the shader
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "uMVPMatrix"), 1, false, mMVPMatrix, 0);
+
+		/*** DRAW ALL THE OBJECTS **/
+		drawAllObjects(_program, false, false);
+		
+		// Get buffers from mesh
+		/*Object3D ob = this._objects[this._currentObject];
+		Mesh mesh = ob.getMesh();
+		FloatBuffer _vb = mesh.get_vb();
+		ShortBuffer _ib = mesh.get_ib();
+
+		short[] _indices = mesh.get_indices();
+
+		// Vertex buffer
+
+		// the vertex coordinates
+		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
+		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aPosition"), 3, GLES20.GL_FLOAT, false,
+				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
+		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aPosition"));
+		
+		// Draw with indices
+		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
+		checkGlError("glDrawElements");*/
+		
+		
+		//Log.d("End Texture load", "Got the texture");
+		
+		/******* TEMPORARY ************/
+		// render the depth buffer
+		renderToQuad();
+		/********** END TEMPORARY *********/
+		
+		/**** Render with shadow now --
+		 *  Steps:
+		 *    -Render the scene as usual
+		 *    -Pass in depth map
+		 *    -Project the depth map onto the scene
+		 *    -Compare depth values to see if pixel is visible (in shadow or not?)
+		 */
+		
+		
+		/** END DRAWING OBJECT ***/
+		return true;
+	}
+	
+	/**
+	 * Renders the texture to a quad
+	 */
+	private void renderToQuad() {
+		// bind default framebuffer
+		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 		
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
@@ -271,23 +449,27 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// set the viewport
 		GLES20.glViewport(0, 0, w, h);
-		//Matrix.orthoM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
+		
+		// View from the eye's perspective
+		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
+									   eyeView[3], eyeView[4], eyeView[5],
+									   eyeView[6], eyeView[7], eyeView[8]);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 		
 		// scaling
-		Matrix.setIdentityM(mScaleMatrix, 0);
-		//Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
+        Matrix.setIdentityM(mScaleMatrix, 0);
+        //Matrix.scaleM(mScaleMatrix, 0, scaleX, scaleY, scaleZ);
 
-		// Rotation along x
-		Matrix.setRotateM(mRotXMatrix, 0, 0, -1.0f, 0.0f, 0.0f);
-		Matrix.setRotateM(mRotYMatrix, 0, 0, 0.0f, 1.0f, 0.0f);
+        // Rotation along x
+        Matrix.setRotateM(mRotXMatrix, 0, 0, -1.0f, 0.0f, 0.0f);
+        Matrix.setRotateM(mRotYMatrix, 0, 0, 0.0f, 1.0f, 0.0f);
 
-		// Set the ModelViewProjectionMatrix
-		float[] tempMatrix = new float[16]; 
-		Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
-		Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
-		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
-		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
-		
+        // Set the ModelViewProjectionMatrix
+        float[] tempMatrix = new float[16]; 
+        Matrix.multiplyMM(tempMatrix, 0, mRotYMatrix, 0, mRotXMatrix, 0);
+        Matrix.multiplyMM(mMMatrix, 0, mScaleMatrix, 0, tempMatrix, 0);
+        Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
 		
 		// send to the shader
 		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "uMVPMatrix"), 1, false, mMVPMatrix, 0);
@@ -333,7 +515,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTex[0]);
 		GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture1"), 0);
 
-		// enable texturing? [fix - sending float is waste]
+		// enable texturing? [TODO: fix - sending float is waste]
 		GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "hasTexture"), 1.0f);
 
 		// texture coordinates
@@ -343,17 +525,12 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "textureCoord"));//GLES20.glEnableVertexAttribArray(shader.maTextureHandle);
 
 		// Draw with indices
-		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _quadi.length, GLES20.GL_UNSIGNED_INT, _qib); // NOTE: On some devices GL_UNSIGNED_SHORT works 
+		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _quadi.length, GLES20.GL_UNSIGNED_SHORT, _qib); // NOTE: On some devices GL_UNSIGNED_SHORT works 
 		checkGlError("glDrawElements");
 
-		/** END DRAWING OBJECT ***/
-		// clear render to texture buffer?
-		//texBuffer.clear();
-		//this.setupRenderToTexture();
+		//Log.d("End Render Texture", "Rendered texture");
 		
 		
-		/** END DRAWING OBJECT ***/
-		return true;
 	}
 	
 	
@@ -445,7 +622,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			
 			for(int i = 0; i < _texIDs.length; i++) {
 				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
-				Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
+				//Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
 				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
 				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
 			}
@@ -488,6 +665,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			_shaders[GOURAUD_SHADER] = new Shader(vShaders[GOURAUD_SHADER], fShaders[GOURAUD_SHADER], mContext, false, 0); // gouraud
 			_shaders[PHONG_SHADER] = new Shader(vShaders[PHONG_SHADER], fShaders[PHONG_SHADER], mContext, false, 0); // phong
 			_shaders[NORMALMAP_SHADER] = new Shader(vShaders[NORMALMAP_SHADER], fShaders[NORMALMAP_SHADER], mContext, false, 0); // normal map
+			_shaders[DEPTHMAP_SHADER] = new Shader(vShaders[DEPTHMAP_SHADER], fShaders[DEPTHMAP_SHADER], mContext, false, 0); // normal map
 		} catch (Exception e) {
 			Log.d("Shader Setup", e.getLocalizedMessage());
 		}
@@ -502,7 +680,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glCullFace(GLES20.GL_BACK); 
 
 		// light variables
-		float[] lightP = {30.0f, 0.0f, 10.0f, 1};
+		float[] lightP = {10.0f, 0.0f, 10.0f, 1};
 		this.lightPos = lightP;
 
 		float[] lightC = {0.5f, 0.5f, 0.5f};
@@ -525,7 +703,9 @@ class Renderer implements GLSurfaceView.Renderer {
 			setupTextures(_objects[i]);
 
 		// set the view matrix
-		Matrix.setLookAtM(mVMatrix, 0, 0, 0, -5.0f, 0.0f, 0f, 0f, 0f, 1.0f, 0.0f);
+		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
+									   eyeView[3], eyeView[4], eyeView[5],
+									   eyeView[6], eyeView[7], eyeView[8]);
 		
 		// Setup Render to texture
 		setupRenderToTexture();
@@ -540,7 +720,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// index buffer
 		_qib = ByteBuffer.allocateDirect(_quadi.length
-				* 4).order(ByteOrder.nativeOrder()).asIntBuffer();
+				* 4).order(ByteOrder.nativeOrder()).asShortBuffer();
 		_qib.put(_quadi);
 		_qib.position(0);
 		
@@ -649,22 +829,6 @@ class Renderer implements GLSurfaceView.Renderer {
 			text = "Light rotation resumed";
 		else
 			text = "Light rotation paused";
-		int duration = Toast.LENGTH_SHORT;
-
-		Toast toast = Toast.makeText(mContext, text, duration);
-		toast.show();
-	}
-	
-	/**
-	 * Toggles Anti-aliasing
-	 */
-	public void toggleAA() {
-		this.aa = !aa;
-		CharSequence text;
-		if (aa)
-			text = "Supersampling on";
-		else
-			text = "Supersampling off";
 		int duration = Toast.LENGTH_SHORT;
 
 		Toast toast = Toast.makeText(mContext, text, duration);
