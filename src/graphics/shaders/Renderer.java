@@ -88,7 +88,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	// current object
 	private int _currentObject;
 
-	// Modelview/Projection matrices
+	// Modelview/Projection matrices for camera
 	private float[] mMVPMatrix = new float[16];
 	private float[] mProjMatrix = new float[16];
 	private float[] mScaleMatrix = new float[16];   // scaling
@@ -98,12 +98,22 @@ class Renderer implements GLSurfaceView.Renderer {
 	private float[] mVMatrix = new float[16]; 		// modelview
 	private float[] normalMatrix = new float[16]; 	// modelview normal
 
+	// Matrices for the light
+	private float[] lMVPMatrix = new float[16];
+	private float[] lProjMatrix = new float[16];
+	private float[] lMMatrix = new float[16];		// rotation
+	private float[] lMVMatrix = new float[16]; 		// modelview
+	
 	// textures enabled?
 	private boolean enableTexture = true;
 	private int[] _texIDs;
 
 	// light parameters
-	private float[] lightPos;
+	//private float[] lightPos; // not really used anymore
+	private float[] lightPos = { 10.0f, 5.0f, 10.0f, 1,   // position
+								  0.0f, 0.0f,  0.0f,       // center (where the light is looking at)
+								  0.0f, 1.0f,  0.0f,       // up vector
+	};
 	private float[] lightColor;
 	
 	// angle rotation for light
@@ -134,6 +144,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	final int texW = 480;
 	final int texH = 800;
 	IntBuffer texBuffer;
+	boolean viewDepthTex = true; // Render the Depth texture quad
 	
 	// viewport variables
 	float ratio = 1.0f;
@@ -186,14 +197,14 @@ class Renderer implements GLSurfaceView.Renderer {
 			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
 			
 			// create the plane
-			_plane = new Object3D(R.raw.plane, true, context);
+			_plane = new Object3D(R.raw.plane, false, context);
 		} catch (Exception e) {
 			//showAlert("" + e.getMessage());
 		}
 
 		// set current object and shader
 		_currentObject = this.OCTAHEDRON;
-		_currentShader = this.DEPTHMAP_SHADER;
+		_currentShader = this.PHONG_SHADER;
 	}
 
 	/*****************************
@@ -284,10 +295,10 @@ class Renderer implements GLSurfaceView.Renderer {
 			int[] texIDs = ob.get_texID(); 
 			
 			for(int i = 0; i < _texIDs.length; i++) {
-				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
+				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i + 1);
 				//Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
 				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
-				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
+				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i+1);
 			}
 		}
 
@@ -316,10 +327,10 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	void drawAllObjects(int _program, boolean _sendNormals, boolean _sendTextures) {
 		// Draw the plane first
-		drawObject(_plane, _program,_sendTextures, _sendTextures);
+		drawObject(_plane, _program, _sendNormals, _sendTextures);
 		
 		// Draw the other object
-		drawObject(this._objects[this._currentObject], _program,_sendTextures, _sendTextures);
+		drawObject(this._objects[this._currentObject], _program, _sendNormals, _sendTextures);
 	}
 	
 	/**
@@ -360,10 +371,69 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Setup ModelViewProjectionMatrix
 		
 		// View from the light's perspective (TODO: Does this turn it into a directional light? Generate cube map for point light)
-		Matrix.setLookAtM(mVMatrix, 0, lightPos[0], lightPos[1], lightPos[2], 
+		Matrix.setLookAtM(lMVMatrix, 0, lightPos[0], lightPos[1], lightPos[2], 
+									    lightPos[4], lightPos[5], lightPos[6],
+									    lightPos[7], lightPos[8], lightPos[9]);
+		Matrix.frustumM(lProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 6400);
+
+		// modelviewprojection matrix
+		Matrix.multiplyMM(lMVPMatrix,0, lProjMatrix, 0, lMVMatrix, 0);
+		
+		// send to the shader
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "uMVPMatrix"), 1, false, lMVPMatrix, 0);
+
+		/// DRAW ALL THE OBJECTS 
+		drawAllObjects(_program, false, false);
+		
+		// render the depth buffer?
+		if (viewDepthTex) {
+			renderToQuad();
+			return true;
+		}
+		
+		/**** Else, render with shadow now --
+		 *  Steps:
+		 *    -Render the scene as usual
+		 *    -Pass in depth map
+		 *    -Project the depth map onto the scene
+		 *    -Compare depth values to see if pixel is visible (in shadow or not?)
+		 */
+		renderWithShadow(lMVPMatrix);
+		
+		/** END DRAWING OBJECT ***/
+		return true;
+	}
+	
+	/**
+	 * Renders the scene with the shadow 
+	 * 2nd pass
+	 * @param lightMVPMatrix the light modelviewprojection matrix
+	 */
+	private void renderWithShadow(float[] lightMVPMatrix) {
+		Log.d("SHADOWRENDER", "Beginning");
+		
+		// bind default framebuffer
+		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+		
+		// Clear the depth buffer
+		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
+		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+		
+		// the current shader
+		Shader shader = _shaders[this._currentShader]; 
+		int _program = shader.get_program();
+		
+		// Start using the shader
+		GLES20.glUseProgram(_program);
+		checkGlError("glUseProgram");
+
+		Log.d("SHADOWRENDER", "Middle1");
+		
+		// View from the eye's perspective
+		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
 									   eyeView[3], eyeView[4], eyeView[5],
 									   eyeView[6], eyeView[7], eyeView[8]);
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 6400);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 		
 		// scaling
 		Matrix.setIdentityM(mScaleMatrix, 0);
@@ -380,51 +450,57 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
 
+		Log.d("SHADOWRENDER", "Middle2");
+		
 		// send to the shader
 		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "uMVPMatrix"), 1, false, mMVPMatrix, 0);
 
-		/*** DRAW ALL THE OBJECTS **/
-		drawAllObjects(_program, false, false);
-		
-		// Get buffers from mesh
-		/*Object3D ob = this._objects[this._currentObject];
-		Mesh mesh = ob.getMesh();
-		FloatBuffer _vb = mesh.get_vb();
-		ShortBuffer _ib = mesh.get_ib();
+		// Create the normal modelview matrix
+		// Invert + transpose of mvpmatrix
+		Matrix.invertM(normalMatrix, 0, mMVPMatrix, 0);
+		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
 
-		short[] _indices = mesh.get_indices();
+		// send to the shader
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, normalMatrix, 0);//mMVPMatrix, 0);
 
-		// Vertex buffer
+		// lighting variables
+		
+		// invert cameraview matrix
+		float shadowProjMatrix[] = new float[16];
+		Matrix.invertM(shadowProjMatrix, 0, mVMatrix, 0); // just the view matrix or modelviewprojection matrix?
+		Matrix.multiplyMM(shadowProjMatrix, 0, lightMVPMatrix, 0, shadowProjMatrix, 0);
+		
+		// send to shaders
+		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "lightPos"), 1, lightPos, 0);
+		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "lightColor"), 1, lightColor, 0);
 
-		// the vertex coordinates
-		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
-		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aPosition"), 3, GLES20.GL_FLOAT, false,
-				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aPosition"));
+		// send the shadow projection matrix
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, mMVPMatrix, 0);
 		
-		// Draw with indices
-		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
-		checkGlError("glDrawElements");*/
-		
-		
-		//Log.d("End Texture load", "Got the texture");
-		
-		/******* TEMPORARY ************/
-		// render the depth buffer
-		renderToQuad();
-		/********** END TEMPORARY *********/
-		
-		/**** Render with shadow now --
-		 *  Steps:
-		 *    -Render the scene as usual
-		 *    -Pass in depth map
-		 *    -Project the depth map onto the scene
-		 *    -Compare depth values to see if pixel is visible (in shadow or not?)
-		 */
+		// material 
+		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matAmbient"), 1, matAmbient, 0);
+		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matDiffuse"), 1, matDiffuse, 0);
+		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matSpecular"), 1, matSpecular, 0);
+		GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "matShininess"), matShininess);
+
+		// send the depth texture
+		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTex[0]);
+		GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture2"), 0);
 		
 		
-		/** END DRAWING OBJECT ***/
-		return true;
+		Log.d("SHADOWRENDER", "Middle3");
+		
+		// eye position
+		GLES20.glUniform3fv(GLES20.glGetUniformLocation(_program, "eyePos"), 1, eyePos, 0); // send in eyePos variable instead?
+		
+		Log.d("SHADOWRENDER", "Middle4");
+		
+		/// DRAW ALL THE OBJECTS 
+		drawAllObjects(_program, true, true);
+		
+		
+		Log.d("SHADOWRENDER", "End");
 	}
 	
 	/**
@@ -680,9 +756,9 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glCullFace(GLES20.GL_BACK); 
 
 		// light variables
-		float[] lightP = {10.0f, 0.0f, 10.0f, 1};
-		this.lightPos = lightP;
-
+		//float[] lightP = {10.0f, 0.0f, 10.0f, 1};
+		//this.lightPos = lightP;
+		
 		float[] lightC = {0.5f, 0.5f, 0.5f};
 		this.lightColor = lightC;
 
@@ -819,6 +895,22 @@ class Renderer implements GLSurfaceView.Renderer {
 		//this.toggleTexturing();
 	}
 
+	/**
+	 * Toggle viewing the depth texture
+	 */
+	public void toggleDepthTex() {
+		this.viewDepthTex = !viewDepthTex;
+		CharSequence text;
+		// show short toast to notify the user
+		if (viewDepthTex) {
+			text = "Viewing depth texture";
+			int duration = Toast.LENGTH_SHORT;
+	
+			Toast toast = Toast.makeText(mContext, text, duration);
+			toast.show();
+		}
+	}
+	
 	/**
 	 * Rotate light or not?
 	 */

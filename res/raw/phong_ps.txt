@@ -4,6 +4,7 @@ precision mediump float;
 
 // texture variables
 uniform sampler2D texture1; // color texture
+uniform sampler2D texture2; // depth texture
 
 varying float tex;
 varying vec2 tCoord;
@@ -14,6 +15,9 @@ varying vec3 EyespaceNormal;
 // light
 uniform vec4 lightPos;
 uniform vec4 lightColor;
+
+// shadow projection matrix
+uniform mat4 shadowProjMatrix;
 
 // material
 uniform vec4 matAmbient;
@@ -27,6 +31,7 @@ uniform vec3 eyePos;
 // from vertex s
 varying vec3 lightDir, eyeVec;
 
+
 void main() {
 	// Just to show them being used
 	//vec4 a = lightPos;
@@ -36,6 +41,7 @@ void main() {
     vec4 e = matSpecular;
     vec3 g = eyePos;
     float f = matShininess;
+	mat4 s = shadowProjMatrix;
 	
 	vec3 N = normalize(EyespaceNormal);
     vec3 E = normalize(eyeVec); 

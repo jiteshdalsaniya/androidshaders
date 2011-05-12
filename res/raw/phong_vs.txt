@@ -3,6 +3,9 @@
 uniform mat4 uMVPMatrix;
 uniform mat4 normalMatrix;
 
+// the shadow projection matrix
+uniform mat4 shadowProjMatrix;
+
 // eye pos
 uniform vec3 eyePos;
 
@@ -26,9 +29,10 @@ uniform vec4 matDiffuse;
 uniform vec4 matSpecular;
 uniform float matShininess;
 
-// normals to pass on
+// to pass on
 varying vec3 vNormal;
 varying vec3 EyespaceNormal;
+varying vec4 shadowMatrix;
 
 varying vec3 lightDir, eyeVec;
 

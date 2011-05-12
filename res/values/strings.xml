@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="toggleLight">Light Rotation</string>
+    <string name="depth">View Depth Texture</string>
     <string name="gouraud">Shader: Gouraud</string>
     <string name="phong">Shader: Phong</string>
 	<string name="normal">Shader: Normal Mapping</string>

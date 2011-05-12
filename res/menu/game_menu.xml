@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:title="@+string/toggleLight" android:id="@+id/toggleLight"></item><item android:id="@+id/gouraud" android:title="@string/gouraud"></item>
-    <item android:id="@+id/quit"
-          android:title="@string/quit" >
-    </item>
-    <item android:id="@+id/aa" android:title="@+string/aa"></item>
+    <item android:id="@+id/quit" android:title="@string/quit" ></item>
+    <item android:id="@+id/depth" android:title="@+string/depth"></item>
     <item android:id="@+id/phong" android:title="@+string/phong"></item>
     <item android:id="@+id/normal_map" android:title="@+string/normal"></item>
     <item android:id="@+id/octahedron" android:title="@+string/octahedron"></item>
