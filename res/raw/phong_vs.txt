@@ -32,7 +32,7 @@ uniform float matShininess;
 // to pass on
 varying vec3 vNormal;
 varying vec3 EyespaceNormal;
-varying vec4 shadowMatrix;
+varying vec4 shadowCoord;
 
 varying vec3 lightDir, eyeVec;
 
@@ -50,6 +50,9 @@ void main() {
 	// light dir
 	lightDir = lightPos.xyz - position.xyz;
 	eyeVec = -position.xyz;
+	
+	// shadow coordinates
+	shadowCoord = shadowProjMatrix * aPosition;
 	
 	gl_Position = uMVPMatrix * aPosition; 
 }

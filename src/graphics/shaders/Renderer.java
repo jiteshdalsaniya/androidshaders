@@ -296,7 +296,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			
 			for(int i = 0; i < _texIDs.length; i++) {
 				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i + 1);
-				//Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
+				////Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
 				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
 				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i+1);
 			}
@@ -327,7 +327,8 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	void drawAllObjects(int _program, boolean _sendNormals, boolean _sendTextures) {
 		// Draw the plane first
-		drawObject(_plane, _program, _sendNormals, _sendTextures);
+		//if (_sendNormals) // only draw when depth test not needed
+			drawObject(_plane, _program, _sendNormals, _sendTextures);
 		
 		// Draw the other object
 		drawObject(this._objects[this._currentObject], _program, _sendNormals, _sendTextures);
@@ -337,6 +338,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * Renders to a texture
 	 */
 	private boolean renderDepthToTexture() {
+		// Cull front faces for shadow generation
+		//GLES20.glCullFace(GLES20.GL_FRONT); 
+		
 		// much bigger viewport?
 		//Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 		GLES20.glViewport(0, 0, this.texW, this.texH);
@@ -368,13 +372,16 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUseProgram(_program);
 		checkGlError("glUseProgram");
 
+		
+		
 		// Setup ModelViewProjectionMatrix
 		
 		// View from the light's perspective (TODO: Does this turn it into a directional light? Generate cube map for point light)
 		Matrix.setLookAtM(lMVMatrix, 0, lightPos[0], lightPos[1], lightPos[2], 
 									    lightPos[4], lightPos[5], lightPos[6],
 									    lightPos[7], lightPos[8], lightPos[9]);
-		Matrix.frustumM(lProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 6400);
+		float ratio2 = (float)texW /texH;
+		Matrix.frustumM(lProjMatrix, 0, -ratio2, ratio2, -1, 1, 1f, 100f);
 
 		// modelviewprojection matrix
 		Matrix.multiplyMM(lMVPMatrix,0, lProjMatrix, 0, lMVMatrix, 0);
@@ -410,7 +417,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * @param lightMVPMatrix the light modelviewprojection matrix
 	 */
 	private void renderWithShadow(float[] lightMVPMatrix) {
-		Log.d("SHADOWRENDER", "Beginning");
+		//Log.d("SHADOWRENDER", "Beginning");
 		
 		// bind default framebuffer
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -427,7 +434,14 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUseProgram(_program);
 		checkGlError("glUseProgram");
 
-		Log.d("SHADOWRENDER", "Middle1");
+		// revert to regular viewport
+		GLES20.glViewport(0, 0, w, h);
+		ratio = (float) w / h;
+		
+		// Cull backfaces now
+		GLES20.glCullFace(GLES20.GL_BACK); 
+		
+		//Log.d("SHADOWRENDER", "Middle1");
 		
 		// View from the eye's perspective
 		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
@@ -450,7 +464,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.multiplyMM(mMVPMatrix, 0, mVMatrix, 0, mMMatrix, 0);
 		Matrix.multiplyMM(mMVPMatrix, 0, mProjMatrix, 0, mMVPMatrix, 0);
 
-		Log.d("SHADOWRENDER", "Middle2");
+		//Log.d("SHADOWRENDER", "Middle2");
 		
 		// send to the shader
 		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "uMVPMatrix"), 1, false, mMVPMatrix, 0);
@@ -475,7 +489,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "lightColor"), 1, lightColor, 0);
 
 		// send the shadow projection matrix
-		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, mMVPMatrix, 0);
+		//GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, lightMVPMatrix, 0); 
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, shadowProjMatrix, 0);
 		
 		// material 
 		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matAmbient"), 1, matAmbient, 0);
@@ -489,18 +504,18 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture2"), 0);
 		
 		
-		Log.d("SHADOWRENDER", "Middle3");
+		//Log.d("SHADOWRENDER", "Middle3");
 		
 		// eye position
 		GLES20.glUniform3fv(GLES20.glGetUniformLocation(_program, "eyePos"), 1, eyePos, 0); // send in eyePos variable instead?
 		
-		Log.d("SHADOWRENDER", "Middle4");
+		//Log.d("SHADOWRENDER", "Middle4");
 		
 		/// DRAW ALL THE OBJECTS 
 		drawAllObjects(_program, true, true);
 		
 		
-		Log.d("SHADOWRENDER", "End");
+		//Log.d("SHADOWRENDER", "End");
 	}
 	
 	/**
@@ -604,7 +619,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _quadi.length, GLES20.GL_UNSIGNED_SHORT, _qib); // NOTE: On some devices GL_UNSIGNED_SHORT works 
 		checkGlError("glDrawElements");
 
-		//Log.d("End Render Texture", "Rendered texture");
+		////Log.d("End Render Texture", "Rendered texture");
 		
 		
 	}
@@ -698,7 +713,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			
 			for(int i = 0; i < _texIDs.length; i++) {
 				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
-				//Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
+				////Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
 				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
 				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
 			}
@@ -743,7 +758,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			_shaders[NORMALMAP_SHADER] = new Shader(vShaders[NORMALMAP_SHADER], fShaders[NORMALMAP_SHADER], mContext, false, 0); // normal map
 			_shaders[DEPTHMAP_SHADER] = new Shader(vShaders[DEPTHMAP_SHADER], fShaders[DEPTHMAP_SHADER], mContext, false, 0); // normal map
 		} catch (Exception e) {
-			Log.d("Shader Setup", e.getLocalizedMessage());
+			//Log.d("Shader Setup", e.getLocalizedMessage());
 		}
 
 		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
@@ -752,6 +767,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDepthMask( true ); // enable writing into the depth buffer
 
 		// cull backface
+		GLES20.glFrontFace(GLES20.GL_CCW);
 		GLES20.glEnable( GLES20.GL_CULL_FACE );
 		GLES20.glCullFace(GLES20.GL_BACK); 
 
@@ -940,7 +956,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			// texture file ids
 			int[] texFiles = ob.getTexFile();
 
-			Log.d("TEXFILES LENGTH: ", texFiles.length + "");
+			//Log.d("TEXFILES LENGTH: ", texFiles.length + "");
 			GLES20.glGenTextures(texIDs.length, textures, 0);
 
 			for(int i = 0; i < texIDs.length; i++) {
@@ -977,7 +993,7 @@ class Renderer implements GLSurfaceView.Renderer {
 				GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 				bitmap.recycle();
 
-				Log.d("ATTACHING TEXTURES: ", "Attached " + i);
+				//Log.d("ATTACHING TEXTURES: ", "Attached " + i);
 			}
 		}
 	}
@@ -990,7 +1006,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			return;
 		scaleX *= scale;scaleY *= scale;scaleZ *= scale;
 
-		Log.d("SCALE: ", scaleX + "");
+		//Log.d("SCALE: ", scaleX + "");
 	}
 
 	// debugging opengl

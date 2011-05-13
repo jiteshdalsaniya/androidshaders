@@ -3,8 +3,9 @@
 precision mediump float;
 
 // texture variables
-uniform sampler2D texture1; // color texture
 uniform sampler2D texture2; // depth texture
+uniform sampler2D texture1; // color texture
+
 
 varying float tex;
 varying vec2 tCoord;
@@ -31,6 +32,29 @@ uniform vec3 eyePos;
 // from vertex s
 varying vec3 lightDir, eyeVec;
 
+// shadow coordinates
+varying vec4 shadowCoord;
+
+float unpack(vec4 packedZValue)
+{
+	//const vec4 multCoef = vec4(1.0,1.0/255.0, 1.0/(255.0 * 255.0),1.0/(255.0 * 255.0 * 255.0));
+	//return dot(packedZValue,multCoef);
+	//return packedZValue.r;
+	
+	
+	const vec4 unpackFactors = vec4( 1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0 );
+	return dot(packedZValue,unpackFactors);
+}
+
+float getShadowFactor(vec4 lightZ)
+{
+
+	vec4 packedZValue = texture2D(texture2, lightZ.st);
+	//float unpackedZValue = unpack(packedZValue);
+
+	return float(packedZValue.x > lightZ.z);
+}
+
 
 void main() {
 	// Just to show them being used
@@ -41,7 +65,6 @@ void main() {
     vec4 e = matSpecular;
     vec3 g = eyePos;
     float f = matShininess;
-	mat4 s = shadowProjMatrix;
 	
 	vec3 N = normalize(EyespaceNormal);
     vec3 E = normalize(eyeVec); 
@@ -53,16 +76,34 @@ void main() {
     
     // Get lighting terms
     vec4 ambientTerm;
-    if (tex >= 1.0) {
+   /* if (tex >= 1.0) {
     	ambientTerm = texture2D(texture1, tCoord);
     }
-    else
+    else*/
     	ambientTerm = matAmbient * lightColor;
     	
     vec4 diffuseTerm = matDiffuse * max(dot(N, L), 0.0);
     vec4 specularTerm = matSpecular * pow(max(dot(reflectV, E), 0.0), matShininess);
-    
-    gl_FragColor =  ambientTerm + diffuseTerm + specularTerm;
-    //gl_FragColor = vec4(1.0, .5, 1.0, 1.0);//texture2D(sTexture, vTextureCoord);
+   
+   
+   	// Shadow
+   
+   	float sValue = 1.0;
+   	//vec4 lightZ = shadowCoord / shadowCoord.w;
+   	//lightZ.z += 0.0005;
+   	//float distance = texture2D(texture2, lightZ.st).z;
+   	
+   	if (shadowCoord.w > 0.0) {
+   		vec4 lightZ = shadowCoord / shadowCoord.w;
+		lightZ = (lightZ + 1.0) /2.0;
+		//lightZ.z += 0.0000000005;
+		sValue = getShadowFactor(lightZ);
+		//sValue = distance < lightZ.z ? 0.5 : 1.0;
+	}
+   
+    gl_FragColor =  (ambientTerm + diffuseTerm + specularTerm) * sValue ;
+   
+   	//gl_FragColor = vec4(depth, depth, depth, 1.0);
+   
 	//gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);//gl_FragDepth;
 }
