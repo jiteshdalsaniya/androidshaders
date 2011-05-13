@@ -381,7 +381,7 @@ class Renderer implements GLSurfaceView.Renderer {
 									    lightPos[4], lightPos[5], lightPos[6],
 									    lightPos[7], lightPos[8], lightPos[9]);
 		float ratio2 = (float)texW /texH;
-		Matrix.frustumM(lProjMatrix, 0, -ratio2, ratio2, -1, 1, 1f, 100f);
+		Matrix.frustumM(lProjMatrix, 0, -ratio2, ratio2, -1, 1, 1f, 5000f);
 
 		// modelviewprojection matrix
 		Matrix.multiplyMM(lMVPMatrix,0, lProjMatrix, 0, lMVMatrix, 0);
@@ -489,8 +489,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "lightColor"), 1, lightColor, 0);
 
 		// send the shadow projection matrix
-		//GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, lightMVPMatrix, 0); 
-		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, shadowProjMatrix, 0);
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, lightMVPMatrix, 0); 
+		//GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "shadowProjMatrix"), 1, false, shadowProjMatrix, 0);
 		
 		// material 
 		GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matAmbient"), 1, matAmbient, 0);
@@ -542,7 +542,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glViewport(0, 0, w, h);
 		
 		// View from the eye's perspective
-		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
+		Matrix.setLookAtM(mVMatrix, 0, 0.0f, 0.0f, -5.0f,//eyeView[0], eyeView[1], eyeView[2], 
 									   eyeView[3], eyeView[4], eyeView[5],
 									   eyeView[6], eyeView[7], eyeView[8]);
 		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
