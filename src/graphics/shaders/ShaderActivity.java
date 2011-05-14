@@ -99,6 +99,9 @@ public class ShaderActivity extends Activity {
 		case R.id.depth:			// View depth texture 
 			renderer.toggleDepthTex();
 			return true;
+		case R.id.shadows:			// View shadows
+			renderer.toggleShadows();
+			return true;
 		case R.id.gouraud: 			// Gouraud Shading
 			renderer.setShader(this.GOURAUD_SHADER);
 			return true;
@@ -121,7 +124,7 @@ public class ShaderActivity extends Activity {
 			renderer.setObject(this.TETRAHEDRON);
 			return true;
 		case R.id.texture:			// Enable/disable texturing
-			renderer.flipTexturing();
+			renderer.toggleTexturing();
 			return true;
 		default:
 			return super.onOptionsItemSelected(item);

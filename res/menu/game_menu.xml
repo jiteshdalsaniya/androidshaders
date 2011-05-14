@@ -3,6 +3,7 @@
     <item android:title="@+string/toggleLight" android:id="@+id/toggleLight"></item><item android:id="@+id/gouraud" android:title="@string/gouraud"></item>
     <item android:id="@+id/quit" android:title="@string/quit" ></item>
     <item android:id="@+id/depth" android:title="@+string/depth"></item>
+    <item android:id="@+id/shadows" android:title="@+string/shadows"></item>
     <item android:id="@+id/phong" android:title="@+string/phong"></item>
     <item android:id="@+id/normal_map" android:title="@+string/normal"></item>
     <item android:id="@+id/octahedron" android:title="@+string/octahedron"></item>

@@ -96,7 +96,7 @@ void main() {
    	if (shadowCoord.w > 0.0) {
    		vec4 lightZ = shadowCoord / shadowCoord.w;
 		lightZ = (lightZ + 1.0) /2.0;
-		//lightZ.z += 0.0000000005;
+		lightZ.z += 0.0005;
 		sValue = getShadowFactor(lightZ);
 		//sValue = distance < lightZ.z ? 0.5 : 1.0;
 	}

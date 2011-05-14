@@ -104,13 +104,13 @@ class Renderer implements GLSurfaceView.Renderer {
 	private float[] lMMatrix = new float[16];		// rotation
 	private float[] lMVMatrix = new float[16]; 		// modelview
 	
-	// textures enabled?
-	private boolean enableTexture = true;
+	
+	// list of textures
 	private int[] _texIDs;
 
 	// light parameters
 	//private float[] lightPos; // not really used anymore
-	private float[] lightPos = { 10.0f, 5.0f, 10.0f, 1,   // position
+	private float[] lightPos = { 17.0f, 20.0f, 10.0f, 1,   // position
 								  0.0f, 0.0f,  0.0f,       // center (where the light is looking at)
 								  0.0f, 1.0f,  0.0f,       // up vector
 	};
@@ -141,10 +141,10 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// RENDER TO TEXTURE VARIABLES
 	int[] fb, depthRb, renderTex;
-	final int texW = 480;
-	final int texH = 800;
+	final int texW = 512;//480;
+	final int texH = 512;//800;
 	IntBuffer texBuffer;
-	boolean viewDepthTex = true; // Render the Depth texture quad
+	
 	
 	// viewport variables
 	float ratio = 1.0f;
@@ -158,7 +158,11 @@ class Renderer implements GLSurfaceView.Renderer {
     float next_game_tick;// = System.currentTimeMillis();//GetTickCount();
     int loops;
 
-
+    // Variables which can be toggled
+    private boolean viewDepthTex = true; 	// Render the depth texture or not?
+	private boolean enableTexture = true;	// textures for objects enabled?
+	private boolean viewShadows = true;		// Should shadows be visible?
+    
 	private Context mContext;
 	private static String TAG = "Renderer";
 
@@ -194,7 +198,7 @@ class Renderer implements GLSurfaceView.Renderer {
 			int[] normalMapTextures = {R.raw.diffuse_old, R.raw.diffusenormalmap_deepbig};
 			_objects[0] = new Object3D(R.raw.octahedron, false, context);
 			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
-			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
+			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, false, context);
 			
 			// create the plane
 			_plane = new Object3D(R.raw.plane, false, context);
@@ -233,27 +237,21 @@ class Renderer implements GLSurfaceView.Renderer {
             loops++;
         }
 		
-        // Ignore the passed-in GL10 interface, and use the GLES20
-		// class's static methods instead.
-		
-		// If supersampling is on, use render to texture - otherwise just use regular rendering
-        /*if (aa) {
-        	renderToTexture();
-        	return;
+        // Render shadows or not?
+        if (viewShadows) {
+	        // This will require multiple passes
+	        
+	        // First pass:
+	        // Render the depth texture from the viewpoint of the light
+	        renderDepthToTexture();
         }
         else {
+        	// regular render
         	regularRender();
-        }*/
-        
-        // This will require multiple passes
-        
-        // First pass:
-        // Render the depth texture from the viewpoint of the light
-        renderDepthToTexture();
+        }
         
         
-		
-	}
+	} // END DRAW FUNCTION
 
 	/**
 	 * Draws one object
@@ -447,7 +445,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.setLookAtM(mVMatrix, 0, eyeView[0], eyeView[1], eyeView[2], 
 									   eyeView[3], eyeView[4], eyeView[5],
 									   eyeView[6], eyeView[7], eyeView[8]);
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 5000);
 		
 		// scaling
 		Matrix.setIdentityM(mScaleMatrix, 0);
@@ -629,6 +627,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * Render the objects
 	 */
 	private void regularRender() {
+		// bind default framebuffer
+		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+		
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
@@ -682,8 +683,9 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glUniform3fv(GLES20.glGetUniformLocation(_program, "eyePos"), 1, eyePos, 0);
 
 		/*** DRAWING OBJECT **/
+		drawAllObjects(_program, true, true);
 		// Get buffers from mesh
-		Object3D ob = this._objects[this._currentObject];
+		/*Object3D ob = this._objects[this._currentObject];
 		Mesh mesh = ob.getMesh();
 		FloatBuffer _vb = mesh.get_vb();
 		ShortBuffer _ib = mesh.get_ib();
@@ -730,7 +732,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		
 		// Draw with indices
 		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
-		checkGlError("glDrawElements");
+		checkGlError("glDrawElements");*/
 		
 	}
 	
@@ -854,7 +856,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		// create an empty intbuffer first?
 		int[] buf = new int[texW * texH];
 		texBuffer = ByteBuffer.allocateDirect(buf.length
-				* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();;
+				* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();
 		GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, texW, texH, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer);
 		
 		// create render buffer and bind 16-bit depth buffer
@@ -896,7 +898,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	/**
 	 * Show texture or not?
 	 */
-	public void flipTexturing() {
+	public void toggleTexturing() {
 		enableTexture = !enableTexture;
 		Object3D ob = _objects[this._currentObject];
 
@@ -941,6 +943,13 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		Toast toast = Toast.makeText(mContext, text, duration);
 		toast.show();
+	}
+	
+	/**
+	 * View shadows or not?
+	 */
+	public void toggleShadows() {
+		this.viewShadows = !viewShadows;
 	}
 
 	/**
