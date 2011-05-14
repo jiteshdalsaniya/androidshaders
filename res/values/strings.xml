@@ -6,7 +6,7 @@
 	<string name="normal">Shader: Normal Mapping</string>
 	<string name="aa">Supersampling on/off</string>
 	<string name="quit">Quit</string>
-    <string name="app_name">AndroidShaders</string>
+    <string name="app_name">AndroidShadersRenderToTex</string>
     <string name="octahedron">Mesh: Octahedron</string>
     <string name="tetrahedron">Mesh: Tetrahedron</string>
     <string name="cube">Mesh: Textured Cube</string>
