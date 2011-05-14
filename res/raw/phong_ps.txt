@@ -46,17 +46,16 @@ void main() {
     vec3 reflectV = reflect(-L, N);
     
     // Get lighting terms
-    vec4 ambientTerm;
-    if (tex >= 1.0) {
-    	ambientTerm = texture2D(texture1, tCoord);
-    }
-    else
-    	ambientTerm = matAmbient * lightColor;
-    	
-    vec4 diffuseTerm = matDiffuse * max(dot(N, L), 0.0);
+     vec4 diffuseTerm = matDiffuse * max(dot(N, L), 0.0);
     vec4 specularTerm = matSpecular * pow(max(dot(reflectV, E), 0.0), matShininess);
     
-    gl_FragColor =  ambientTerm + diffuseTerm + specularTerm;
-    //gl_FragColor = vec4(1.0, .5, 1.0, 1.0);//texture2D(sTexture, vTextureCoord);
-	
+    vec4 ambientTerm = matAmbient * lightColor;
+    vec4 finalColor = ambientTerm + diffuseTerm + specularTerm;
+    if (tex >= 1.0) {
+   		ambientTerm = texture2D(texture1, tCoord);
+   		finalColor = ambientTerm + diffuseTerm + specularTerm;
+   		//gl_FragColor = finalColor;
+    }
+    //else
+    	gl_FragColor = finalColor;
 }

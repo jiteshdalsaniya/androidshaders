@@ -61,8 +61,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	// The objects
 	Object3D[] _objects = new Object3D[3];
 
-	// the full-screen quad buffers
-							
+	// the full-screen quad buffers						
 	final float x = 10.0f;
 	final float y = 15.0f;
 	final float z = 2.0f;
@@ -77,7 +76,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	private FloatBuffer _qvb;
 	// index
 	final int _quadi[] = { 0, 1, 2,
-			              2, 3, 0  
+			               2, 3, 0  
 						};
 	private IntBuffer _qib;
 	
@@ -124,8 +123,8 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// RENDER TO TEXTURE VARIABLES
 	int[] fb, depthRb, renderTex;
-	int texW = 480 * 2;
-	int texH = 800 * 2;
+	int texW = 480;
+	int texH = 800;
 	IntBuffer texBuffer;
 	
 	// viewport variables
@@ -179,7 +178,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		// set current object and shader
 		_currentObject = this.OCTAHEDRON;
-		_currentShader = this.GOURAUD_SHADER;
+		_currentShader = this.PHONG_SHADER;//GOURAUD_SHADER;
 	}
 
 	/*****************************
@@ -266,7 +265,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
 
 		// send to the shader
-		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, mMVPMatrix, 0);
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, normalMatrix, 0);
 
 		// lighting variables
 		// send to shaders
@@ -377,7 +376,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		Matrix.transposeM(normalMatrix, 0, normalMatrix, 0);
 
 		// send to the shader
-		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, mMVPMatrix, 0);
+		GLES20.glUniformMatrix4fv(GLES20.glGetUniformLocation(_program, "normalMatrix"), 1, false, normalMatrix, 0);
 
 		// lighting variables
 		// send to shaders
@@ -432,8 +431,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		}
 
 		// enable texturing? [fix - sending float is waste]
-		GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "hasTexture"), ob.hasTexture() && enableTexture ? 2.0f : 0.0f);
-
+		GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "hasTexture"), (ob.hasTexture() && enableTexture) ? 2.0f : 0.0f);//2.0f : 0.0f);
+		
 		// texture coordinates
 		_vb.position(TRIANGLE_VERTICES_DATA_TEX_OFFSET);
 		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "textureCoord"), 2, GLES20.GL_FLOAT, false,

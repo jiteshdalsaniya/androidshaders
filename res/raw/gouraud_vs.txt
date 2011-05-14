@@ -37,8 +37,6 @@ void main() {
 	tex = hasTexture;
 	tCoord = textureCoord;
 	
-	vec4 nm = normalMatrix * vec4(aNormal, 1.0);
-	
 	// normal
 	vec3 EyespaceNormal = vec3(uMVPMatrix * vec4(aNormal, 1.0));
 	
