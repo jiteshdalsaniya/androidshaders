@@ -141,8 +141,8 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// RENDER TO TEXTURE VARIABLES
 	int[] fb, depthRb, renderTex;
-	final int texW = 512;//480;
-	final int texH = 512;//800;
+	final int texW = 480;
+	final int texH = 800;
 	IntBuffer texBuffer;
 	
 	
@@ -159,7 +159,7 @@ class Renderer implements GLSurfaceView.Renderer {
     int loops;
 
     // Variables which can be toggled
-    private boolean viewDepthTex = true; 	// Render the depth texture or not?
+    private boolean viewDepthTex = false; 	// Render the depth texture or not?
 	private boolean enableTexture = true;	// textures for objects enabled?
 	private boolean viewShadows = true;		// Should shadows be visible?
     
@@ -197,8 +197,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		try {
 			int[] normalMapTextures = {R.raw.diffuse_old, R.raw.diffusenormalmap_deepbig};
 			_objects[0] = new Object3D(R.raw.octahedron, false, context);
-			_objects[1] = new Object3D(R.raw.tetrahedron, false, context);
-			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, false, context);
+			_objects[1] = new Object3D(R.raw.dragon, false, context);
+			_objects[2] = new Object3D(normalMapTextures, R.raw.texturedcube, true, context);
 			
 			// create the plane
 			_plane = new Object3D(R.raw.plane, false, context);
@@ -337,7 +337,10 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	private boolean renderDepthToTexture() {
 		// Cull front faces for shadow generation
+		//GLES20.glDisable(GLES20.GL_CULL_FACE);
+		//GLES20.glEnable(GLES20.GL_CULL_FACE);
 		//GLES20.glCullFace(GLES20.GL_FRONT); 
+		
 		
 		// much bigger viewport?
 		//Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
@@ -420,6 +423,12 @@ class Renderer implements GLSurfaceView.Renderer {
 		// bind default framebuffer
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 		
+		// backface culling
+		GLES20.glDisable(GLES20.GL_CULL_FACE);
+		GLES20.glEnable(GLES20.GL_CULL_FACE);
+		GLES20.glCullFace(GLES20.GL_BACK);  
+		
+		
 		// Clear the depth buffer
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
@@ -435,9 +444,6 @@ class Renderer implements GLSurfaceView.Renderer {
 		// revert to regular viewport
 		GLES20.glViewport(0, 0, w, h);
 		ratio = (float) w / h;
-		
-		// Cull backfaces now
-		GLES20.glCullFace(GLES20.GL_BACK); 
 		
 		//Log.d("SHADOWRENDER", "Middle1");
 		
@@ -499,7 +505,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		// send the depth texture
 		GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 		GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTex[0]);
-		GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture2"), 0);
+		GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "shadowTexture"), 0);
 		
 		
 		//Log.d("SHADOWRENDER", "Middle3");
@@ -522,6 +528,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	private void renderToQuad() {
 		// bind default framebuffer
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+		GLES20.glCullFace(GLES20.GL_BACK); 
 		
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
@@ -792,6 +799,9 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		matShininess = 5.0f;
 
+		// Setup Render to texture
+		setupRenderToTexture();
+		
 		// setup textures for all objects
 		for(int i = 0; i < _objects.length; i++)
 			setupTextures(_objects[i]);
@@ -801,8 +811,7 @@ class Renderer implements GLSurfaceView.Renderer {
 									   eyeView[3], eyeView[4], eyeView[5],
 									   eyeView[6], eyeView[7], eyeView[8]);
 		
-		// Setup Render to texture
-		setupRenderToTexture();
+		
 		
 		// Setup quad 
 		// Generate your vertex, normal and index buffers

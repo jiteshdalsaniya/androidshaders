@@ -7,9 +7,9 @@
     <string name="phong">Shader: Phong</string>
 	<string name="normal">Shader: Normal Mapping</string>
 	<string name="quit">Quit</string>
-    <string name="app_name">AndroidShaders</string>
+    <string name="app_name">AndroidShadersShadowMapping</string>
     <string name="octahedron">Mesh: Octahedron</string>
-    <string name="tetrahedron">Mesh: Tetrahedron</string>
+    <string name="dragon">Mesh: Dragon Head</string>
     <string name="cube">Mesh: Textured Cube</string>
     <string name="texture">Texture on/off</string>
 </resources>

@@ -3,7 +3,7 @@
 precision mediump float;
 
 // texture variables
-uniform sampler2D texture2; // depth texture
+uniform sampler2D shadowTexture; // depth texture
 uniform sampler2D texture1; // color texture
 
 
@@ -49,7 +49,7 @@ float unpack(vec4 packedZValue)
 float getShadowFactor(vec4 lightZ)
 {
 
-	vec4 packedZValue = texture2D(texture2, lightZ.st);
+	vec4 packedZValue = texture2D(shadowTexture, lightZ.st);
 	//float unpackedZValue = unpack(packedZValue);
 
 	return float(packedZValue.x > lightZ.z);
@@ -93,13 +93,13 @@ void main() {
    	//lightZ.z += 0.0005;
    	//float distance = texture2D(texture2, lightZ.st).z;
    	
-   	if (shadowCoord.w > 0.0) {
+   //	if (shadowCoord.w > 0.0) {
    		vec4 lightZ = shadowCoord / shadowCoord.w;
 		lightZ = (lightZ + 1.0) /2.0;
 		lightZ.z += 0.0005;
 		sValue = getShadowFactor(lightZ);
 		//sValue = distance < lightZ.z ? 0.5 : 1.0;
-	}
+//	}
    
     gl_FragColor =  (ambientTerm + diffuseTerm + specularTerm) * sValue ;
    

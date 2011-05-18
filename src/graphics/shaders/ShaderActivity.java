@@ -99,9 +99,9 @@ public class ShaderActivity extends Activity {
 		case R.id.depth:			// View depth texture 
 			renderer.toggleDepthTex();
 			return true;
-		case R.id.shadows:			// View shadows
+		/*case R.id.shadows:			// View shadows
 			renderer.toggleShadows();
-			return true;
+			return true;*/
 		case R.id.gouraud: 			// Gouraud Shading
 			renderer.setShader(this.GOURAUD_SHADER);
 			return true;
@@ -120,8 +120,8 @@ public class ShaderActivity extends Activity {
 		case R.id.octahedron:		// Octahedron
 			renderer.setObject(this.OCTAHEDRON);
 			return true;
-		case R.id.tetrahedron:		// Tetrahedron
-			renderer.setObject(this.TETRAHEDRON);
+		case R.id.dragon:			// dragon
+			renderer.setObject(this.DRAGON);
 			return true;
 		case R.id.texture:			// Enable/disable texturing
 			renderer.toggleTexturing();
@@ -221,7 +221,7 @@ public class ShaderActivity extends Activity {
 
 	// object constants
 	private final int OCTAHEDRON = 0;
-	private final int TETRAHEDRON = 1;
+	private final int DRAGON = 1;
 	private final int CUBE = 2;
 
 	// touch events

@@ -169,9 +169,12 @@ public class Mesh {
 
 				// tokenizer based on space
 				tokenizer = new StringTokenizer(str);
-				_vertices[i * this.VERTEX_ARRAY_SIZE]     = Float.parseFloat(tokenizer.nextToken());
-				_vertices[i * this.VERTEX_ARRAY_SIZE + 1] = Float.parseFloat(tokenizer.nextToken());
-				_vertices[i * this.VERTEX_ARRAY_SIZE + 2] = Float.parseFloat(tokenizer.nextToken());
+				float scale = 1.0f;
+				if (meshID == R.raw.dragon)
+					scale = 8.0f;
+				_vertices[i * this.VERTEX_ARRAY_SIZE]     = Float.parseFloat(tokenizer.nextToken()) * scale;
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 1] = Float.parseFloat(tokenizer.nextToken()) * scale;
+				_vertices[i * this.VERTEX_ARRAY_SIZE + 2] = Float.parseFloat(tokenizer.nextToken()) * scale;
 				//Log.d("Str vertices:", _vertices[i * this.VERTEX_ARRAY_SIZE + 0] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 1] + "," + _vertices[i * this.VERTEX_ARRAY_SIZE + 2]);
 			}
 
