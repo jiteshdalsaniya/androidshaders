@@ -141,8 +141,8 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// RENDER TO TEXTURE VARIABLES
 	int[] fb, depthRb, renderTex;
-	final int texW = 480;
-	final int texH = 800;
+	final int texW = 512;//480;
+	final int texH = 512;//800;
 	IntBuffer texBuffer;
 	
 	
@@ -339,7 +339,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		// Cull front faces for shadow generation
 		//GLES20.glDisable(GLES20.GL_CULL_FACE);
 		//GLES20.glEnable(GLES20.GL_CULL_FACE);
-		//GLES20.glCullFace(GLES20.GL_FRONT); 
+		GLES20.glCullFace(GLES20.GL_FRONT); 
 		
 		
 		// much bigger viewport?
@@ -366,7 +366,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
 		// depth map shaders
-		Shader shader = _shaders[this.DEPTHMAP_SHADER]; // PROBLEM!
+		Shader shader = _shaders[this.DEPTHMAP_SHADER];
 		int _program = shader.get_program();
 		
 		// Start using the shader
@@ -425,8 +425,8 @@ class Renderer implements GLSurfaceView.Renderer {
 		
 		// backface culling
 		GLES20.glDisable(GLES20.GL_CULL_FACE);
-		GLES20.glEnable(GLES20.GL_CULL_FACE);
-		GLES20.glCullFace(GLES20.GL_BACK);  
+		//GLES20.glEnable(GLES20.GL_CULL_FACE);
+		//GLES20.glCullFace(GLES20.GL_BACK);  
 		
 		
 		// Clear the depth buffer
@@ -485,6 +485,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		
 		// invert cameraview matrix
 		float shadowProjMatrix[] = new float[16];
+
 		Matrix.invertM(shadowProjMatrix, 0, mVMatrix, 0); // just the view matrix or modelviewprojection matrix?
 		Matrix.multiplyMM(shadowProjMatrix, 0, lightMVPMatrix, 0, shadowProjMatrix, 0);
 		
@@ -528,6 +529,9 @@ class Renderer implements GLSurfaceView.Renderer {
 	private void renderToQuad() {
 		// bind default framebuffer
 		GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+		
+		// backface culling
+		GLES20.glEnable(GLES20.GL_CULL_FACE);
 		GLES20.glCullFace(GLES20.GL_BACK); 
 		
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
@@ -857,9 +861,9 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T,
 				GLES20.GL_CLAMP_TO_EDGE);
 		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER,
-				GLES20.GL_LINEAR);
+				GLES20.GL_NEAREST);
 		GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
-				GLES20.GL_LINEAR);
+				GLES20.GL_NEAREST);
 
 		// create it 
 		// create an empty intbuffer first?
@@ -871,21 +875,6 @@ class Renderer implements GLSurfaceView.Renderer {
 		// create render buffer and bind 16-bit depth buffer
 		GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthRb[0]);
 		GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, GLES20.GL_DEPTH_COMPONENT16, texW, texH);
-		
-		/*** PART BELOW SHOULD BE DONE IN onDrawFrame ***/
-		
-		// bind framebuffer
-		/*GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb[0]);
-		
-		// specify texture as color attachment
-		GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, renderTex[0], 0);
-		
-		// attach render buffer as depth buffer
-		GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb[0]);
-		
-		// check status
-		int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);*/
-		
 	}
 	
 	/**

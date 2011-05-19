@@ -52,6 +52,16 @@ void main() {
 	eyeVec = -position.xyz;
 	
 	// shadow coordinates
+	mat4 bias2 = mat4(0.5, 0.0, 0.0, 0.5,
+					 0.0, 0.5, 0.0, 0.5,
+					 0.0, 0.0, 0.0, 0.5,
+					 0.0, 0.0, 0.0, 1.0);
+	
+	mat4 bias = mat4(0.5, 0.0, 0.0, 0.0,
+					 0.0, 0.5, 0.0, 0.0,
+					 0.0, 0.0, 0.0, 0.5,
+					 0.5, 0.5, 0.5, 1.0);
+	mat4 shadowProjMatrix2 = bias * shadowProjMatrix;
 	shadowCoord = shadowProjMatrix * aPosition;
 	
 	gl_Position = uMVPMatrix * aPosition; 
