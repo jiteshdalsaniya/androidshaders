@@ -1,6 +1,8 @@
 // Pixel shader Gouraud Shading - Per-vertex lighting
 
-precision mediump float;
+// Also used for rendering the depth texture
+
+precision highp float;
 
 // texture variables
 uniform sampler2D texture1; // color texture
@@ -12,8 +14,17 @@ varying vec2 tCoord;
 varying vec4 color;
 
 void main() {
-	if (tex >= 1.0) {
+	if (tex >= 1.0) { // texture enabled
+		const vec3 bitShifts = vec3(1.0 / (256.0 * 256.0 * 256.0),
+									1.0 / (256.0 * 256.0),
+									1.0 / 256.0);
+									//1.0);
+		float depth =  dot( texture2D(texture1, tCoord).xyz, bitShifts);
+		
+		//float depth = texture2D(texture1, tCoord);
+		//depth = pow(depth, 64.0);
 		gl_FragColor = texture2D(texture1, tCoord);
+		//gl_FragColor = vec4(depth, depth, depth, 1.0);
 	}
 	else
 		gl_FragColor = color;

@@ -53,6 +53,58 @@ public class ShaderActivity extends Activity {
 			mGLSurfaceView.setEGLContextClientVersion(2);
 			renderer = new Renderer(this);
 			mGLSurfaceView.setRenderer(renderer);
+			
+			// render only when dirty
+			mGLSurfaceView.setRenderMode(mGLSurfaceView.RENDERMODE_WHEN_DIRTY);
+			
+			
+			// game loop start
+			next_game_tick = System.currentTimeMillis();
+			
+			// start a new thread - will be your gameloop?
+			new Thread(new Runnable() { 
+		        public void run() { 
+		        	// do stuff that doesn't touch the UI here
+		        	
+		        	// Game Loop #1
+		        	/*while(true) {
+		        		loops = 0;
+			            while( System.currentTimeMillis() > next_game_tick && loops < MAX_FRAMESKIP) {
+			            	// rotate the light - the only update we have
+			                renderer.rotateLight();
+	
+			                next_game_tick += SKIP_TICKS;
+			                loops++;
+			            }
+			                
+			            // render
+			            mGLSurfaceView.requestRender();
+		        	} // End of Game Loop #1 */
+		        		
+		        	
+		        	// Game Loop #2
+		        	long sleep_time = 0;
+		        	while( true ) {
+		        		renderer.rotateLight();
+		        		// render
+			            mGLSurfaceView.requestRender();
+
+		                next_game_tick += SKIP_TICKS;
+		                sleep_time = next_game_tick - System.currentTimeMillis();
+		                if( sleep_time >= 0 ) {
+		                	try {
+		                		Thread.sleep( sleep_time );
+		                	} catch (Exception e) {}
+		                }
+		                else {
+		                    // Shit, we are running behind!
+		                }
+		            }
+		        	
+		        		
+		        } 
+			}).start(); // thread started 
+			
 		} 
 		else { // quit if no support - get a better phone! :P
 			this.finish();
@@ -234,4 +286,14 @@ public class ShaderActivity extends Activity {
 	float newDist;
 
 	int mode = 0;
+	
+	// GAME LOOP VARIABLES
+	final int TICKS_PER_SECOND = 30;
+    final int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
+    final int MAX_FRAMESKIP = 10;
+
+    long next_game_tick;
+    int loops;
+
+    
 }

@@ -1,24 +1,16 @@
 // Pixel shader to generate the Depth Map
 // Used for shadow mapping - generates depth map from the light's viewpoint
-precision mediump float;
+precision highp float;
 
 varying vec4 position; 
 
 void main() {
-	
-	// output the depth (z-coordinate in gl_FragCoord)
-	//float depth = pow(gl_FragCoord.z, 3.0);
-	float normalizedDistance  = position.z / 45.0;//position.w;
+	// the depth
+	float normalizedDistance  = position.z / position.w; //45.0;
 	normalizedDistance = (normalizedDistance + 1.0) / 2.0;
 	
-	normalizedDistance += 0.0005;
-
-	
-	/*vec4 packFactors = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
-	vec4 bitMask     = vec4(0.0, 1.0/256.0,  1.0/256.0, 1.0/256.0);
-	vec4 packedValue = vec4(fract(packFactors*normalizedDistance));//-floor(packFactors*normalizedDistance));
-	packedValue -= packedValue.xxyz * bitMask;
-	gl_FragColor  = packedValue;*/
+	// bias
+	//normalizedDistance += 0.00005;
 	
 	gl_FragColor = vec4(normalizedDistance, normalizedDistance, normalizedDistance, normalizedDistance); 
 	

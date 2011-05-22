@@ -123,6 +123,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 	// material properties
 	private float[] matAmbient;
+	private float[] matAmbient2;
 	private float[] matDiffuse;
 	private float[] matSpecular;
 	private float matShininess;
@@ -154,7 +155,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	final int TICKS_PER_SECOND = 25; // Update "game" info at 60fps - will ensure light doesn't rotate too fast
     final int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
     final int MAX_FRAMESKIP = 10;
-
+    float lastTime = 0.0f;
     float next_game_tick;// = System.currentTimeMillis();//GetTickCount();
     int loops;
 
@@ -211,6 +212,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		_currentShader = this.PHONG_SHADER;
 	}
 
+	
 	/*****************************
 	 * GL FUNCTIONS
 	 ****************************/
@@ -218,24 +220,14 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * Draw function - called for every frame
 	 */
 	public void onDrawFrame(GL10 glUnused) {
-		// GAME LOOP 
-		loops = 0;
-        while( SystemClock.elapsedRealtime() > next_game_tick && loops < MAX_FRAMESKIP) {
-        	// Rotate the light?
-        	if (lightRotate) {
-    			angle += 0.000005f;
-    			if (angle >= 6.2)
-    				angle = 0.0f;
-
-    			// rotate light about y-axis
-    			float newPosX = (float)(Math.cos(angle) * lightPos[0] - Math.sin(angle) * lightPos[2]);
-    			float newPosZ = (float)(Math.sin(angle) * lightPos[0] + Math.cos(angle) * lightPos[2]);
-    			lightPos[0] = newPosX; lightPos[2] = newPosZ;
-    		}
-
-            next_game_tick += SKIP_TICKS;
-            loops++;
-        }
+		
+		// Check system time at the beginning
+		//long startTime = System.currentTimeMillis();
+		
+		// Rotate the light?
+    	//if (lightRotate) {
+    	//	rotateLight();
+		//}
 		
         // Render shadows or not?
         if (viewShadows) {
@@ -249,6 +241,12 @@ class Renderer implements GLSurfaceView.Renderer {
         	// regular render
         	regularRender();
         }
+        
+        // check system time at the end (for framerate limit)
+        /*long endTime = System.currentTimeMillis();
+        long deltaT = endTime - startTime;
+        if (deltaT < 33) // sleep to keep framerate at 30
+        	SystemClock.sleep(33-deltaT);*/
         
         
 	} // END DRAW FUNCTION
@@ -326,9 +324,14 @@ class Renderer implements GLSurfaceView.Renderer {
 	void drawAllObjects(int _program, boolean _sendNormals, boolean _sendTextures) {
 		// Draw the plane first
 		//if (_sendNormals) // only draw when depth test not needed
-			drawObject(_plane, _program, _sendNormals, _sendTextures);
+		if (_sendNormals) // drawing phong
+			GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matAmbient"), 1, matAmbient2, 0);
+		
+		drawObject(_plane, _program, _sendNormals, _sendTextures);
 		
 		// Draw the other object
+		if (_sendNormals) // drawing phong
+			GLES20.glUniform4fv(GLES20.glGetUniformLocation(_program, "matAmbient"), 1, matAmbient, 0);
 		drawObject(this._objects[this._currentObject], _program, _sendNormals, _sendTextures);
 	}
 	
@@ -337,10 +340,7 @@ class Renderer implements GLSurfaceView.Renderer {
 	 */
 	private boolean renderDepthToTexture() {
 		// Cull front faces for shadow generation
-		//GLES20.glDisable(GLES20.GL_CULL_FACE);
-		//GLES20.glEnable(GLES20.GL_CULL_FACE);
 		GLES20.glCullFace(GLES20.GL_FRONT); 
-		
 		
 		// much bigger viewport?
 		//Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
@@ -425,9 +425,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		
 		// backface culling
 		GLES20.glDisable(GLES20.GL_CULL_FACE);
-		//GLES20.glEnable(GLES20.GL_CULL_FACE);
-		//GLES20.glCullFace(GLES20.GL_BACK);  
-		
+		//GLES20.glCullFace(GLES20.GL_BACK);
 		
 		// Clear the depth buffer
 		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
@@ -695,55 +693,6 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		/*** DRAWING OBJECT **/
 		drawAllObjects(_program, true, true);
-		// Get buffers from mesh
-		/*Object3D ob = this._objects[this._currentObject];
-		Mesh mesh = ob.getMesh();
-		FloatBuffer _vb = mesh.get_vb();
-		ShortBuffer _ib = mesh.get_ib();
-
-		short[] _indices = mesh.get_indices();
-
-		// Vertex buffer
-
-		// the vertex coordinates
-		_vb.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
-		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aPosition"), 3, GLES20.GL_FLOAT, false,
-				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aPosition"));
-
-		// the normal info
-		_vb.position(TRIANGLE_VERTICES_DATA_NOR_OFFSET);
-		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "aNormal"), 3, GLES20.GL_FLOAT, false,
-				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "aNormal"));
-
-		// Texture info
-
-		// bind textures
-		if (ob.hasTexture()) {// && enableTexture) {
-			// number of textures
-			int[] texIDs = ob.get_texID(); 
-			
-			for(int i = 0; i < _texIDs.length; i++) {
-				GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
-				////Log.d("TEXTURE BIND: ", i + " " + texIDs[i]);
-				GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texIDs[i]);
-				GLES20.glUniform1i(GLES20.glGetUniformLocation(_program, "texture" + (i+1)), i);
-			}
-		}
-
-		// enable texturing? [fix - sending float is waste]
-		GLES20.glUniform1f(GLES20.glGetUniformLocation(_program, "hasTexture"), ob.hasTexture() && enableTexture ? 2.0f : 0.0f);
-
-		// texture coordinates
-		_vb.position(TRIANGLE_VERTICES_DATA_TEX_OFFSET);
-		GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(_program, "textureCoord"), 2, GLES20.GL_FLOAT, false,
-				TRIANGLE_VERTICES_DATA_STRIDE_BYTES, _vb);
-		GLES20.glEnableVertexAttribArray(GLES20.glGetAttribLocation(_program, "textureCoord"));
-		
-		// Draw with indices
-		GLES20.glDrawElements(GLES20.GL_TRIANGLES, _indices.length, GLES20.GL_UNSIGNED_SHORT, _ib);
-		checkGlError("glDrawElements");*/
 		
 	}
 	
@@ -756,7 +705,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		w = width;
 		h = height;
 		ratio = (float) width / height;
-		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
+		Matrix.frustumM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 60);
 		//Matrix.orthoM(mProjMatrix, 0, -ratio, ratio, -1, 1, 0.5f, 10);
 	}
 
@@ -780,14 +729,14 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDepthMask( true ); // enable writing into the depth buffer
 
 		// cull backface
-		GLES20.glFrontFace(GLES20.GL_CCW);
+		GLES20.glFrontFace(GLES20.GL_CW);
 		GLES20.glEnable( GLES20.GL_CULL_FACE );
-		GLES20.glCullFace(GLES20.GL_BACK); 
+		GLES20.glCullFace(GLES20.GL_FRONT); 
 
-		// light variables
-		//float[] lightP = {10.0f, 0.0f, 10.0f, 1};
-		//this.lightPos = lightP;
+		// disable dithering for better shadow mapping
+		GLES20.glDisable(GLES20.GL_DITHER);
 		
+		// light variables
 		float[] lightC = {0.5f, 0.5f, 0.5f};
 		this.lightColor = lightC;
 
@@ -795,6 +744,10 @@ class Renderer implements GLSurfaceView.Renderer {
 		float[] mA = {1.0f, 0.5f, 0.5f, 1.0f};
 		matAmbient = mA;
 
+		// material properties for plane
+		float[] ma2 = {1.0f, 215f/255f, 0.0f};
+		matAmbient2 = ma2;
+		
 		float[] mD = {0.5f, 0.5f, 0.5f, 1.0f};
 		matDiffuse = mD;
 
@@ -839,6 +792,21 @@ class Renderer implements GLSurfaceView.Renderer {
 	 * OTHER METHODS
 	 *************************/
 
+	// rotates the light around the y-axis
+	public void rotateLight() {
+		if (!lightRotate)
+			return;
+		
+		angle += 0.000005f;
+		if (angle >= 6.2)
+			angle = 0.0f;
+
+		// rotate light about y-axis
+		float newPosX = (float)(Math.cos(angle) * lightPos[0] - Math.sin(angle) * lightPos[2]);
+		float newPosZ = (float)(Math.sin(angle) * lightPos[0] + Math.cos(angle) * lightPos[2]);
+		lightPos[0] = newPosX; lightPos[2] = newPosZ;
+	}
+	
 	/**
 	 * Sets up the framebuffer and renderbuffer to render to texture
 	 */

@@ -64,5 +64,5 @@ void main() {
 	mat4 shadowProjMatrix2 = bias * shadowProjMatrix;
 	shadowCoord = shadowProjMatrix * aPosition;
 	
-	gl_Position = uMVPMatrix * aPosition; 
+	gl_Position = position;//uMVPMatrix * aPosition; 
 }
