@@ -362,7 +362,7 @@ class Renderer implements GLSurfaceView.Renderer {
 
 		/*** DRAW ***/
 		// Clear color and buffers
-		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
+		GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
 		// depth map shaders
@@ -382,8 +382,9 @@ class Renderer implements GLSurfaceView.Renderer {
 									    lightPos[4], lightPos[5], lightPos[6],
 									    lightPos[7], lightPos[8], lightPos[9]);
 		float ratio2 = (float)texW /texH;
-		Matrix.frustumM(lProjMatrix, 0, -ratio2, ratio2, -1, 1, 1f, 5000f);
-
+		//Matrix.frustumM(lProjMatrix, 0, -ratio2, ratio2, -1, 1, 1f, 5000f);
+		Matrix.frustumM(lProjMatrix, 0, -ratio, ratio, -1, 1, 1f, 40000);
+		
 		// modelviewprojection matrix
 		Matrix.multiplyMM(lMVPMatrix,0, lProjMatrix, 0, lMVMatrix, 0);
 		
@@ -428,7 +429,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		//GLES20.glCullFace(GLES20.GL_BACK);
 		
 		// Clear the depth buffer
-		GLES20.glClearColor(.0f, .0f, .0f, 1.0f);
+		GLES20.glClearColor(.1f, .1f, .1f, 1.0f);
 		GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
 		
 		// the current shader
@@ -729,9 +730,9 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDepthMask( true ); // enable writing into the depth buffer
 
 		// cull backface
-		GLES20.glFrontFace(GLES20.GL_CW);
+		GLES20.glFrontFace(GLES20.GL_CCW);
 		GLES20.glEnable( GLES20.GL_CULL_FACE );
-		GLES20.glCullFace(GLES20.GL_FRONT); 
+		GLES20.glCullFace(GLES20.GL_BACK); 
 
 		// disable dithering for better shadow mapping
 		GLES20.glDisable(GLES20.GL_DITHER);
@@ -838,7 +839,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		int[] buf = new int[texW * texH];
 		texBuffer = ByteBuffer.allocateDirect(buf.length
 				* FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asIntBuffer();
-		GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, texW, texH, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer);
+		GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, texW, texH, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, texBuffer);//GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer);
 		
 		// create render buffer and bind 16-bit depth buffer
 		GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthRb[0]);

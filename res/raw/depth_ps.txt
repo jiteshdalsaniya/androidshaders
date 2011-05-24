@@ -4,14 +4,32 @@ precision highp float;
 
 varying vec4 position; 
 
+vec4 pack (float depth)
+{
+	const vec4 bitSh = vec4(4.0 * 4.0 * 4.0,
+							4.0 * 4.0,
+							4.0,
+							1.0);
+	const vec4 bitMsk = vec4(0,
+							 1.0 / 4.0,
+							 1.0 / 4.0,
+							 1.0 / 4.0);
+	vec4 comp = fract(depth * bitSh);
+	comp -= comp.xxyz * bitMsk;
+	return comp;
+}
+
 void main() {
 	// the depth
-	float normalizedDistance  = position.z / position.w; //45.0;
+	float normalizedDistance  = position.z / position.w;
 	normalizedDistance = (normalizedDistance + 1.0) / 2.0;
 	
 	// bias
-	//normalizedDistance += 0.00005;
+	//normalizedDistance -= 0.00005;
+	normalizedDistance += 0.005;
+
+	gl_FragColor = pack(normalizedDistance);
 	
-	gl_FragColor = vec4(normalizedDistance, normalizedDistance, normalizedDistance, normalizedDistance); 
+	//gl_FragColor = vec4(normalizedDistance, normalizedDistance, normalizedDistance, normalizedDistance); 
 	
 }
