@@ -35,29 +35,17 @@ varying vec3 lightDir, eyeVec;
 // shadow coordinates
 varying vec4 shadowCoord;
 
-float unpack (vec4 colour)
-{
-	const vec4 bitShifts = vec4(1.0 / (4.0 * 4.0 * 4.0),
-								1.0 / (4.0 * 4.0),
-								1.0 / 4.0,
-								1);
-	return dot(colour , bitShifts);
-}
 
 float getShadowFactor(vec4 lightZ)
 {
-
-	//vec4 packedZValue = texture2D(shadowTexture, lightZ.st);
 	vec4 packedZValue = texture2D(shadowTexture, lightZ.st);
-	//float unpacked = unpack(packedZValue);
 
-	const vec4 bitShifts = vec4(1.0 / (4.0 * 4.0 * 4.0),
-								1.0 / (4.0 * 4.0),
-								1.0 / 4.0,
+	// unpack
+	const vec4 bitShifts = vec4(1.0 / (256.0 * 256.0 * 256.0),
+								1.0 / (256.0 * 256.0),
+								1.0 / 256.0,
 								1);
-	float unpacked = dot(packedZValue , bitShifts);
-
-	float shadow = unpacked;//(packedZValue.z);// + packedZValue.y + packedZValue.z)/3.0;
+	float shadow = dot(packedZValue , bitShifts);
 
 	return float(shadow > lightZ.z);
 }
@@ -98,8 +86,7 @@ void main() {
    	if (shadowCoord.w > 0.0) {
    		vec4 lightZ = shadowCoord / shadowCoord.w;
 		lightZ = (lightZ + 1.0) /2.0;
-		//lightZ.z -= 0.00005;
-		lightZ.z += 0.0005;
+		
 		sValue = getShadowFactor(lightZ);
 		
 		// scale the value from 0.5-1.0 to get a "softer" shadow for ambient and diffuse
@@ -108,8 +95,6 @@ void main() {
 		float v2 = sValue/v1;
 		sValue2 = sValue + newMin;
 		
-		//sValue = scaleRange(sValue, 0.0, 1.0, 0.5, 1.0);
-		//sValue = distance < lightZ.z ? 0.5 : 1.0;
 	}
    
     gl_FragColor =  ( ambientTerm * sValue2 + (diffuseTerm + specularTerm) * sValue) ;

@@ -17,14 +17,14 @@ void main() {
 	if (tex >= 1.0) { // texture enabled
 	
 		// unpack
-		const vec4 bitShifts = vec4(1.0 / (32.0 * 32.0 * 32.0),
-									1.0 / (32.0 * 32.0),
-									1.0 / 32.0,
+		const vec4 bitShifts = vec4(1.0 / (256.0 * 256.0 * 256.0),
+									1.0 / (256.0 * 256.0),
+									1.0 / 256.0,
 									1.0);
 		float depth =  dot( texture2D(texture1, tCoord), bitShifts);
 		
 		//float depth = texture2D(texture1, tCoord);
-		//depth = pow(depth, 32.0);
+		//depth = pow(depth, 256.0);
 		//gl_FragColor = texture2D(texture1, tCoord);
 		gl_FragColor = vec4(depth, depth, depth, depth);
 	}
