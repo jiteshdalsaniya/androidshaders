@@ -89,12 +89,11 @@ void main() {
 		
 		sValue = getShadowFactor(lightZ);
 		
-		// scale the value from 0.5-1.0 to get a "softer" shadow for ambient and diffuse
+		// scale the value from 0.5-1.0 to get a "softer" shadow for ambient
 		float newMin = 0.5;
-		float v1 = (1.0 - 0.0)/(1.0 - newMin);
+		float v1 = (1.0)/(1.0 - newMin);
 		float v2 = sValue/v1;
-		sValue2 = sValue + newMin;
-		
+		sValue2 = sValue + newMin;//v2 + newMin;
 	}
    
     gl_FragColor =  ( ambientTerm * sValue2 + (diffuseTerm + specularTerm) * sValue) ;
