@@ -15,6 +15,7 @@ import java.nio.ShortBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,6 +27,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
+@SuppressLint("NewApi")
 class Renderer implements GLSurfaceView.Renderer {
 	/******************************
 	 * PROPERTIES
@@ -146,7 +148,8 @@ class Renderer implements GLSurfaceView.Renderer {
 	/***************************
 	 * CONSTRUCTOR(S)
 	 **************************/
-	public Renderer(Context context) {
+	@SuppressLint("NewApi")
+    public Renderer(Context context) {
 
 		mContext = context;
 
@@ -187,7 +190,8 @@ class Renderer implements GLSurfaceView.Renderer {
 	/*
 	 * Draw function - called for every frame
 	 */
-	public void onDrawFrame(GL10 glUnused) {
+	@SuppressLint("NewApi")
+    public void onDrawFrame(GL10 glUnused) {
 		// GAME LOOP 
 		loops = 0;
         while( SystemClock.elapsedRealtime() > next_game_tick && loops < MAX_FRAMESKIP) {
@@ -488,7 +492,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		float[] lightP = {30.0f, 0.0f, 10.0f, 1};
 		this.lightPos = lightP;
 
-		float[] lightC = {0.5f, 0.5f, 0.5f};
+		float[] lightC = {0.5f, 0.5f, 0.5f, 1};
 		this.lightColor = lightC;
 
 		// material properties - TODO: ideally should be in Object3D itself 
