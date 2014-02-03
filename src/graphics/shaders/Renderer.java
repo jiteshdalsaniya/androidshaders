@@ -15,6 +15,7 @@ import java.nio.ShortBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,6 +27,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
+@SuppressLint("NewApi")
 class Renderer implements GLSurfaceView.Renderer {
 	/******************************
 	 * PROPERTIES
@@ -738,7 +740,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		GLES20.glDisable(GLES20.GL_DITHER);
 		
 		// light variables
-		float[] lightC = {0.5f, 0.5f, 0.5f};
+		float[] lightC = {0.5f, 0.5f, 0.5f, 1.0f};
 		this.lightColor = lightC;
 
 		// material properties - TODO: ideally should be in Object3D itself 
@@ -746,7 +748,7 @@ class Renderer implements GLSurfaceView.Renderer {
 		matAmbient = mA;
 
 		// material properties for plane
-		float[] ma2 = {1.0f, 215f/255f, 0.0f};
+		float[] ma2 = {1.0f, 215f/255f, 0.0f, 1.0f};
 		matAmbient2 = ma2;
 		
 		float[] mD = {0.5f, 0.5f, 0.5f, 1.0f};
